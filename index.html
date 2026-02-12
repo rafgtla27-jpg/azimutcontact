@@ -99,104 +99,102 @@
             background: var(--company-color, var(--primary));
             transition: width 0.2s ease;
         }
+        .contact-item:hover::before { width: 8px; }
         .contact-item:hover {
-            transform: translateX(4px);
             background: rgba(51, 65, 85, 0.6);
-            border-color: var(--primary);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            transform: translateX(4px);
+            border-color: var(--company-color, var(--primary));
         }
-        .contact-item h3 { margin: 0 0 4px 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
-        .contact-item p { margin: 2px 0; font-size: 0.8125rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-
-        .search-container {
-            position: sticky;
-            top: 0;
-            background: var(--sidebar-bg);
-            padding: 4px 0 16px 0;
-            z-index: 5;
+        .contact-item h3 { 
+            margin: 0 0 4px 0; 
+            font-size: 1rem; 
+            font-weight: 600;
         }
-
-        .search-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .search-input-wrapper input {
-            width: 100%;
-            padding: 10px 12px 10px 36px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .search-input-wrapper i {
-            position: absolute;
-            left: 12px;
+        .contact-item p { 
+            margin: 4px 0; 
+            font-size: 0.875rem; 
             color: var(--text-muted);
-            pointer-events: none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .contact-stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 12px;
         }
 
         .stat-card {
             background: var(--card-bg);
             padding: 12px;
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: center;
             border: 1px solid var(--border);
         }
 
         .stat-value {
             display: block;
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--primary);
         }
 
         .stat-label {
+            display: block;
             font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
             color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input-wrapper input {
+            padding-left: 36px;
         }
 
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.875rem; color: var(--text-muted); }
-        .form-group input, .form-group select { 
-            width: 100%; 
-            padding: 10px 12px; 
-            box-sizing: border-box; 
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 0.875rem;
-            transition: border-color 0.2s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: var(--primary);
+        .form-group label { 
+            display: block; 
+            margin-bottom: 6px; 
+            font-size: 0.875rem; 
+            font-weight: 500;
+            color: var(--text-muted);
         }
 
-        button { 
-            cursor: pointer; 
-            padding: 10px 16px; 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
+        input, select { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid var(--border); 
             border-radius: 8px; 
-            font-weight: 500;
+            background: var(--card-bg); 
+            color: var(--text); 
             font-size: 0.875rem;
-            transition: background 0.2s;
+            transition: all 0.2s;
+        }
+        
+        input:focus, select:focus { 
+            outline: none; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        button { 
+            background: var(--primary); 
+            color: var(--text); 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            font-size: 0.875rem;
+            transition: all 0.2s;
             width: 100%;
         }
         button:hover { background: var(--primary-hover); }
@@ -237,6 +235,77 @@
             font-weight: 500;
         }
 
+        /* Scope Type Styles */
+        .scope-type {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .scope-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--card-bg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scope-checkbox:hover {
+            border-color: var(--primary);
+        }
+
+        .scope-checkbox input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .scope-checkbox label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--text);
+        }
+
+        .scope-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .scope-badge.regional {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .scope-badge.national {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        /* Reset View Button */
+        .reset-view-btn {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+
+        .reset-view-btn:hover {
+            background: var(--primary);
+            color: var(--text);
+            border-color: var(--primary);
+        }
+
         /* Modal Styles */
         #modal-overlay {
             display: none;
@@ -256,6 +325,8 @@
             border-radius: 16px;
             width: 90%;
             max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             border: 1px solid var(--border);
         }
@@ -296,7 +367,7 @@
             </div>
             <div class="form-group">
                 <label>Mot de passe</label>
-                <input type="password" id="login-password">
+                <input type="password" id="login-password" onkeypress="if(event.key==='Enter') login()">
             </div>
             <button onclick="login()">Se connecter</button>
             <p id="login-error" style="color: var(--danger); margin-top: 16px; display: none; text-align: center; font-size: 0.875rem;"></p>
@@ -314,6 +385,10 @@
 
         <div class="region-filter">
             <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.875rem;">Filtres</label>
+            
+            <!-- Bouton Réinitialiser la vue -->
+            <button class="reset-view-btn" onclick="resetMapView()">🔄 Réinitialiser la vue</button>
+            
             <div class="filter-group">
                 <label>Par Région</label>
                 <select id="region-select" onchange="filterData()">
@@ -324,6 +399,15 @@
                 <label>Par Entreprise</label>
                 <select id="company-select" onchange="filterData()">
                     <option value="all">Toutes les entreprises</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Par Portée</label>
+                <select id="scope-select" onchange="filterData()">
+                    <option value="all">Tous</option>
+                    <option value="regional">Régional uniquement</option>
+                    <option value="national">National uniquement</option>
+                    <option value="both">Régional & National</option>
                 </select>
             </div>
         </div>
@@ -360,8 +444,8 @@
                 <input type="hidden" id="edit-id">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div class="form-group">
-                        <label>Prénom</label>
-                        <input type="text" id="first_name" placeholder="Jean">
+                        <label>Prénom *</label>
+                        <input type="text" id="first_name" placeholder="Jean" required>
                     </div>
                     <div class="form-group">
                         <label>Nom</label>
@@ -379,8 +463,8 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Ville</label>
-                    <input type="text" id="city" placeholder="Paris, France">
+                    <label>Ville *</label>
+                    <input type="text" id="city" placeholder="Paris, France" required>
                 </div>
                 <div class="form-group">
                     <label>Région</label>
@@ -389,6 +473,19 @@
                 <div class="form-group">
                     <label>Entreprise</label>
                     <input type="text" id="company" placeholder="ACME Inc.">
+                </div>
+                <div class="form-group">
+                    <label>Portée du contact</label>
+                    <div class="scope-type">
+                        <div class="scope-checkbox">
+                            <input type="checkbox" id="scope-regional" value="regional">
+                            <label for="scope-regional">Régional</label>
+                        </div>
+                        <div class="scope-checkbox">
+                            <input type="checkbox" id="scope-national" value="national">
+                            <label for="scope-national">National</label>
+                        </div>
+                    </div>
                 </div>
                 <button id="save-btn" onclick="saveContact()">Enregistrer le contact</button>
             </div>
@@ -412,6 +509,7 @@
         let markers = {};
         let currentRegion = 'all';
         let currentCompany = 'all';
+        let currentScope = 'all';
         let regionLayer, deptLayer, currentDeptDisplay;
         let companyColors = {};
 
@@ -470,6 +568,28 @@
                 companyColors[company] = colors[colorIndex];
             }
             return companyColors[company];
+        }
+
+        // Fonction pour réinitialiser la vue de la carte
+        function resetMapView() {
+            map.setView([46.2276, 2.2137], 6);
+            currentRegion = 'all';
+            document.getElementById('region-select').value = 'all';
+            
+            // Supprimer l'affichage des départements
+            if (currentDeptDisplay) {
+                map.removeLayer(currentDeptDisplay);
+                currentDeptDisplay = null;
+            }
+            
+            // Réinitialiser les styles des régions
+            if (regionLayer) {
+                regionLayer.eachLayer(l => {
+                    l.setStyle({ fillOpacity: 0.1 });
+                });
+            }
+            
+            filterData();
         }
 
         async function init() {
@@ -550,8 +670,15 @@
             const targetDepts = regionToDepts[regionCode] || [];
             const filteredFeatures = deptLayer.toGeoJSON().features.filter(f => targetDepts.includes(f.properties.code));
             
+            // CORRECTION: Changer la couleur de bordure de blanc (#fff) à une couleur visible (#22c55e)
             currentDeptDisplay = L.geoJSON(filteredFeatures, {
-                style: { fillColor: '#10b981', weight: 1.5, opacity: 1, color: '#fff', fillOpacity: 0.2 },
+                style: { 
+                    fillColor: '#10b981', 
+                    weight: 2, 
+                    opacity: 1, 
+                    color: '#22c55e',  // Changé de '#fff' à '#22c55e' (vert visible)
+                    fillOpacity: 0.2 
+                },
                 onEachFeature: (feature, layer) => {
                     layer.bindTooltip(feature.properties.nom);
                     layer.on('click', (e) => {
@@ -582,6 +709,7 @@
         function filterData() {
             currentRegion = document.getElementById('region-select').value;
             currentCompany = document.getElementById('company-select').value;
+            currentScope = document.getElementById('scope-select').value;
             const searchTerm = (document.getElementById('contact-search')?.value || '').toLowerCase();
             
             Object.values(markers).forEach(m => map.removeLayer(m));
@@ -595,7 +723,18 @@
                     (c.city || '').toLowerCase().includes(searchTerm) ||
                     (c.company || '').toLowerCase().includes(searchTerm) ||
                     (c.email || '').toLowerCase().includes(searchTerm);
-                return matchRegion && matchCompany && matchSearch;
+                
+                // Filtre par portée (scope)
+                let matchScope = true;
+                if (currentScope === 'regional') {
+                    matchScope = c.scopeRegional && !c.scopeNational;
+                } else if (currentScope === 'national') {
+                    matchScope = c.scopeNational && !c.scopeRegional;
+                } else if (currentScope === 'both') {
+                    matchScope = c.scopeRegional && c.scopeNational;
+                }
+                
+                return matchRegion && matchCompany && matchSearch && matchScope;
             });
 
             renderContacts(filtered);
@@ -657,17 +796,20 @@
         async function saveContact() {
             const saveBtn = document.getElementById('save-btn');
             const originalText = saveBtn.innerText;
+            const editId = document.getElementById('edit-id').value; // CORRECTION: Capturer l'ID avant le try-catch
+            
             saveBtn.innerText = 'Localisation...';
             saveBtn.disabled = true;
 
             try {
-                const id = document.getElementById('edit-id').value;
                 const firstName = document.getElementById('first_name').value;
                 const lastName = document.getElementById('last_name').value;
                 const email = document.getElementById('email').value;
                 const phone = document.getElementById('phone').value;
                 const city = document.getElementById('city').value;
                 const company = document.getElementById('company').value;
+                const scopeRegional = document.getElementById('scope-regional').checked;
+                const scopeNational = document.getElementById('scope-national').checked;
 
                 if (!firstName || !city) throw new Error('Le prénom et la ville sont obligatoires');
 
@@ -677,13 +819,14 @@
                 const region = await findRegion(coords.lat, coords.lon);
 
                 const contactData = { 
-                    id: id || Date.now().toString(), 
+                    id: editId || Date.now().toString(), 
                     firstName, lastName, email, phone, city, region, company,
+                    scopeRegional, scopeNational,
                     lat: coords.lat, lon: coords.lon, fullName: coords.fullName 
                 };
 
-                if (id) {
-                    const index = contacts.findIndex(c => c.id === id);
+                if (editId) {
+                    const index = contacts.findIndex(c => c.id === editId);
                     contacts[index] = contactData;
                 } else {
                     contacts.push(contactData);
@@ -695,13 +838,13 @@
                     body: JSON.stringify(contacts)
                 });
 
+                // CORRECTION: Réinitialiser le formulaire AVANT de fermer le modal
                 resetForm();
                 closeModal();
                 map.setView([contactData.lat, contactData.lon], 12);
             } catch (err) {
                 alert(err.message);
-            } finally {
-                saveBtn.innerText = id ? 'Mettre à jour' : 'Enregistrer le contact';
+                saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
             }
         }
@@ -719,10 +862,15 @@
                 iconAnchor: [7, 7]
             });
 
+            // Générer les badges de portée
+            let scopeBadges = '';
+            if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Régional</span>';
+            if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">National</span>';
+
             const marker = L.marker([contact.lat, contact.lon], { icon }).addTo(map)
                 .bindPopup(`
                     <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
-                        <b style="font-size: 1rem;">${contact.firstName} ${contact.lastName || ''}</b><br>
+                        <b style="font-size: 1rem;">${contact.firstName} ${contact.lastName || ''}</b>${scopeBadges}<br>
                         <span style="color: ${color}; font-weight: 600; font-size: 0.8rem;">${contact.company || 'Privé'}</span><br>
                         <hr style="border: 0; border-top: 1px solid var(--border); margin: 8px 0;">
                         ${contact.email ? `<p style="margin: 4px 0; font-size: 0.875rem;">📧 ${contact.email}</p>` : ''}
@@ -753,14 +901,21 @@
 
             filtered.forEach(contact => {
                 const color = getCompanyColor(contact.company);
+                
+                // Générer les badges de portée
+                let scopeBadges = '';
+                if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Régional</span>';
+                if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">National</span>';
+                
                 const div = document.createElement('div');
                 div.className = 'contact-item';
                 div.style.setProperty('--company-color', color);
                 div.innerHTML = `
                     <div style="padding-left: 8px;">
-                        <h3>${contact.firstName} ${contact.lastName || ''}</h3>
+                        <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}</h3>
                         <p style="color: ${color}; font-weight: 600;">🏢 ${contact.company || 'Privé'}</p>
                         ${contact.email ? `<p>📧 ${contact.email}</p>` : ''}
+                        ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
                         <p>📍 ${contact.city}</p>
                         <div class="action-btns">
                             <button class="edit-btn" onclick="editContact('${contact.id}')">Modifier</button>
@@ -789,6 +944,8 @@
             document.getElementById('city').value = contact.city;
             document.getElementById('region').value = contact.region || '';
             document.getElementById('company').value = contact.company || '';
+            document.getElementById('scope-regional').checked = contact.scopeRegional || false;
+            document.getElementById('scope-national').checked = contact.scopeNational || false;
             document.getElementById('modal-title').innerText = 'Modifier le contact';
             document.getElementById('save-btn').innerText = 'Mettre à jour';
             openModal();
@@ -800,7 +957,8 @@
 
         function closeModal() {
             document.getElementById('modal-overlay').style.display = 'none';
-            resetForm();
+            // CORRECTION: Ne PAS réinitialiser le formulaire ici pour éviter les conflits
+            // La réinitialisation se fait maintenant dans saveContact() avant closeModal()
         }
 
         async function deleteContact(id) {
@@ -841,6 +999,8 @@
                             contacts.push({
                                 id: Date.now().toString() + Math.random(),
                                 firstName, lastName, email, phone, city, region, company,
+                                scopeRegional: false,
+                                scopeNational: false,
                                 lat: coords.lat, lon: coords.lon, fullName: coords.fullName
                             });
                             await new Promise(r => setTimeout(r, 1100)); 
@@ -867,6 +1027,8 @@
             document.getElementById('city').value = '';
             document.getElementById('region').value = '';
             document.getElementById('company').value = '';
+            document.getElementById('scope-regional').checked = false;
+            document.getElementById('scope-national').checked = false;
             document.getElementById('modal-title').innerText = 'Nouveau Contact';
             document.getElementById('save-btn').innerText = 'Enregistrer le contact';
         }
