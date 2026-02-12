@@ -126,7 +126,41 @@
         }
 
         /* ── MAP ── */
-        #map { flex: 1; height: 100vh; min-width: 0; }
+        #map { 
+            flex: 1; 
+            height: 100vh; 
+            min-width: 0; 
+            position: relative;
+        }
+
+        /* ── BOUTON RETOUR SUR LA CARTE ── */
+        #map-back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 1000;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        #map-back-btn:hover {
+            background: var(--card-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99,102,241,0.4);
+        }
+        #map-back-btn.visible {
+            display: flex;
+        }
 
         /* ── CONTACT LIST ── */
         #contact-list {
@@ -183,413 +217,448 @@
             left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
+            opacity: 0.4;
         }
-        .search-wrapper input { padding-left: 34px; }
-
-        /* ── SORT BAR ── */
-        .sort-bar {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .sort-btn {
-            flex: 1;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            padding: 5px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            width: auto;
-            transition: all 0.15s;
-            white-space: nowrap;
-        }
-        .sort-btn:hover { border-color: var(--primary); color: var(--text); background: var(--card-hover); }
-        .sort-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
-
-        /* ── CONTACT CARD ── */
-        .contact-item {
-            background: var(--card-bg);
-            padding: 12px 12px 12px 16px;
-            margin-bottom: 8px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--company-color, var(--primary));
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-        }
-        .contact-item:hover {
-            background: var(--card-hover);
-            border-color: var(--company-color, var(--primary));
-            transform: translateX(2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .contact-item.highlighted {
-            background: var(--card-hover);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(99,102,241,0.3);
-        }
-        .contact-item h3 {
-            margin: 0 0 3px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            line-height: 1.3;
-        }
-        .contact-item p {
-            margin: 2px 0;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .contact-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .contact-item:hover .contact-actions { opacity: 1; }
-
-        /* ── BADGES ── */
-        .scope-badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 0.62rem;
-            font-weight: 600;
-            margin-left: 4px;
-            vertical-align: middle;
-        }
-        .scope-badge.regional { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .scope-badge.national { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
-
-        /* ── INPUTS ── */
-        .form-group { margin-bottom: 14px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-        input, select {
+        .search-input {
             width: 100%;
-            padding: 9px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            padding: 9px 12px 9px 36px;
             background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             color: var(--text);
-            font-size: 0.875rem;
-            transition: all 0.2s;
+            font-size: 0.8rem;
+            transition: all 0.15s ease;
             font-family: 'Inter', sans-serif;
         }
-        input:focus, select:focus {
+        .search-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-        }
-
-        /* ── BUTTONS ── */
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-            width: 100%;
-            font-family: 'Inter', sans-serif;
-        }
-        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
-        button:active { transform: translateY(0); }
-        .btn-sm { padding: 5px 10px; font-size: 0.72rem; width: auto; border-radius: 6px; }
-        .btn-success { background: #166534; color: #4ade80; border: 1px solid #15803d; }
-        .btn-success:hover { background: #15803d; }
-        .btn-danger { background: #7f1d1d; color: #f87171; border: 1px solid #991b1b; }
-        .btn-danger:hover { background: #991b1b; }
-        .btn-ghost { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: var(--card-hover); color: var(--text); box-shadow: none; }
-        .btn-add {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border-radius: 10px;
-            font-weight: 600;
-            padding: 11px;
-            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
-        }
-        .btn-add:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
-
-        /* ── FILTERS ── */
-        .filter-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-        .filter-group:last-child { margin-bottom: 0; }
-        .filter-group label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
-
-        /* ── SCOPE CHECKBOXES ── */
-        .scope-type { display: flex; gap: 8px; flex-wrap: wrap; }
-        .scope-checkbox {
-            display: flex; align-items: center; gap: 6px;
-            background: var(--card-bg); padding: 7px 12px;
-            border-radius: 8px; border: 1px solid var(--border);
-            cursor: pointer; transition: all 0.2s;
-        }
-        .scope-checkbox:hover { border-color: var(--primary); background: var(--card-hover); }
-        .scope-checkbox input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; accent-color: var(--primary); }
-        .scope-checkbox label { margin: 0; cursor: pointer; font-size: 0.82rem; }
-
-        /* ── IMPORT ── */
-        .import-zone {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 14px;
-            text-align: center;
-            transition: border-color 0.2s;
-        }
-        .import-zone:hover { border-color: var(--primary); }
-        .import-zone input[type="file"] { font-size: 0.72rem; color: var(--text-muted); width: 100%; }
-
-        /* ── LEGEND ── */
-        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.78rem; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-
-        /* ── MODAL ── */
-        #modal-overlay {
-            display: none;
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.65);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(4px);
-        }
-        #modal-overlay.open { display: flex; }
-        .modal-content {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
             background: var(--sidebar-bg);
-            padding: 28px;
-            border-radius: 18px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            animation: modalIn 0.2s ease;
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .close-modal { background: transparent; color: var(--text-muted); width: auto; padding: 4px 8px; font-size: 1.3rem; border-radius: 6px; }
-        .close-modal:hover { background: var(--card-bg); color: var(--text); transform: none; box-shadow: none; }
-
-        /* ── TOAST ── */
-        #toast-container {
-            position: fixed; bottom: 20px; right: 20px;
-            display: flex; flex-direction: column; gap: 8px;
-            z-index: 9998; pointer-events: none;
-        }
-        .toast {
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--success);
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-size: 0.82rem;
-            max-width: 320px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            animation: toastIn 0.3s ease;
-            pointer-events: all;
-        }
-        .toast.error { border-left-color: var(--danger); }
-        .toast.warning { border-left-color: var(--warning); }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0); }
-            to   { opacity: 0; transform: translateX(20px); }
         }
 
-        /* ── BACK TO TOP ── */
-        #back-top-btn {
-            position: fixed; top: 16px; left: 16px;
-            z-index: 1500;
-            background: var(--primary);
-            color: white; border: none; border-radius: 50%;
-            width: 38px; height: 38px; font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
-            display: none; align-items: center; justify-content: center;
-            transition: all 0.2s; width: 38px;
+        /* ── CITY GROUP ── */
+        .city-group {
+            margin-bottom: 16px;
         }
-        #back-top-btn:hover { background: var(--primary-hover); transform: scale(1.1) translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
-        #back-top-btn.visible { display: flex; }
-
-        /* ── LEAFLET CUSTOM ── */
-        .leaflet-container { background: #0d1526 !important; }
-        .leaflet-popup-content-wrapper {
-            background: var(--sidebar-bg); color: var(--text);
-            border-radius: 12px; border: 1px solid var(--border);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-        }
-        .leaflet-popup-content { margin: 14px 16px; }
-        .leaflet-popup-tip { background: var(--sidebar-bg); }
-        .leaflet-popup-close-button { color: var(--text-muted) !important; }
-
-        /* ── EMPTY STATE ── */
-        .empty-state {
-            text-align: center;
-            padding: 40px 16px;
-            color: var(--text-muted);
-        }
-        .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
-        .empty-state p { font-size: 0.82rem; margin: 0; }
-
-        /* ── NO LOCATION BADGE ── */
-        .no-loc-badge {
-            display: inline-block;
-            background: rgba(245,158,11,0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245,158,11,0.2);
-            border-radius: 4px;
-            font-size: 0.6rem;
-            padding: 1px 5px;
-            margin-left: 4px;
-            vertical-align: middle;
-        }
-
-        /* ── MARKER CLUSTERS ── */
-        .marker-cluster {
-            background-color: rgba(99, 102, 241, 0.6);
-            border-radius: 50%;
-            text-align: center;
-            color: white;
-            font-weight: 700;
-            border: 3px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        .marker-cluster div {
-            background-color: rgba(99, 102, 241, 0.9);
-            border-radius: 50%;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-        }
-        .marker-cluster:hover {
-            transform: scale(1.15);
-            transition: transform 0.2s;
-        }
-
-        /* ── NO LOCATION SECTION ── */
-        .no-location-section {
+        .city-group-header {
             background: var(--card-bg);
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 12px;
-        }
-        .no-location-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            padding: 4px;
-            border-radius: 8px;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
         }
-        .no-location-header:hover {
+        .city-group-header:hover {
             background: var(--card-hover);
+            border-color: var(--primary);
         }
-        .no-location-title {
-            font-size: 0.75rem;
+        .city-group-title {
             font-weight: 600;
-            color: var(--warning);
+            font-size: 0.85rem;
+            color: var(--text);
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .no-location-count {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--warning);
+        .city-group-count {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .city-group-contacts {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-left: 8px;
+        }
+
+        /* ── CONTACT CARD ── */
+        .contact-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        .contact-card:hover {
+            background: var(--card-hover);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+        .contact-card.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .contact-card.active * { color: white !important; }
+
+        .contact-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin: 0 0 3px;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        .contact-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .contact-meta-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .contact-meta-line svg {
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+
+        .contact-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .contact-badge {
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-regional { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .badge-national { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+        /* ── FEATURE SECTION (contacts sans localisation) ── */
+        .feature-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .feature-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .feature-contacts {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 9px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+        }
+        .btn:hover {
+            background: var(--card-hover);
+            border-color: var(--primary);
+        }
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        .btn-danger {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* ── FORM ── */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.8rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.15s ease;
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .form-textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+        .form-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+        .form-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-box {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            max-width: 520px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text);
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.3rem;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+        .modal-close:hover {
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        /* ── TOAST ── */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            pointer-events: all;
+            animation: toastIn 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+        }
+        .toast.error { border-color: var(--danger); }
+        .toast.success { border-color: var(--success); }
+        .toast.warning { border-color: var(--warning); }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── BACK TO TOP ── */
+        #back-top-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 340px;
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        #back-top-btn.visible { display: flex; }
+        #back-top-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+        }
+
+        /* ── FILTERS ── */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .filter-btn {
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.15s ease;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+        }
+        .filter-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--primary);
+        }
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .region-btn, .dept-btn {
+            padding: 10px 14px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            transition: all 0.15s ease;
+            text-align: left;
+            color: var(--text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+        }
+        .region-btn:hover, .dept-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--primary);
+        }
+        .region-btn.active, .dept-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .region-count, .dept-count {
+            background: rgba(255,255,255,0.15);
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 0.7rem;
             font-weight: 700;
         }
-        .no-location-list {
-            margin-top: 8px;
-            display: none;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .no-location-list.expanded {
-            display: block;
-        }
-        .no-location-item {
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .no-location-item:hover {
-            background: var(--card-hover);
-            transform: translateX(2px);
-        }
-        .no-location-item h4 {
-            margin: 0 0 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .no-location-item p {
-            margin: 2px 0;
-            color: var(--text-muted);
-            font-size: 0.7rem;
+        .region-btn.active .region-count, .dept-btn.active .dept-count {
+            background: rgba(255,255,255,0.25);
         }
 
-        /* ── ZONE OVERLAY STYLES ── */
-        .zone-overlay-controls {
-            position: absolute;
-            top: 80px;
-            right: 10px;
-            z-index: 1000;
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+        /* ── DELIVERY ZONE DISPLAY ── */
+        .delivery-zone-info {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1));
+            border: 1px solid var(--warning);
+            border-radius: 10px;
             padding: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            max-width: 250px;
+            margin-top: 12px;
+            font-size: 0.8rem;
         }
-        .zone-toggle {
+        .delivery-zone-title {
+            font-weight: 700;
+            color: var(--warning);
+            margin: 0 0 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
         }
-        .zone-toggle input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-        }
-        .zone-toggle label {
-            font-size: 0.75rem;
+        .delivery-zone-content {
             color: var(--text);
-            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            #sidebar { width: 100%; position: absolute; z-index: 20; }
+            #contact-list { width: 100%; position: absolute; right: 0; z-index: 15; }
+            #back-top-btn { right: 24px; }
         }
     </style>
 </head>
@@ -600,1151 +669,781 @@
     <div class="login-box">
         <div class="login-logo">
             <span>AzimutTrans</span>
-            <p>Carte des contacts commerciaux</p>
+            <p>Contact Map</p>
         </div>
-        <div class="form-group">
-            <label>Nom d'utilisateur</label>
-            <input type="text" id="login-username" placeholder="Identifiant" autofocus>
+        <div style="margin-bottom: 16px;">
+            <input type="password" id="password-input" placeholder="Mot de passe"
+                   style="width: 100%; padding: 12px 16px; background: #263548; border: 1px solid #334155; border-radius: 10px; color: #f1f5f9; font-size: 0.9rem; font-family: 'Inter', sans-serif;">
         </div>
-        <div class="form-group">
-            <label>Mot de passe</label>
-            <input type="password" id="login-password" placeholder="••••••••"
-                   onkeydown="if(event.key==='Enter') login()">
-        </div>
-        <button onclick="login()" id="login-btn">Se connecter</button>
-        <p id="login-error" style="color:var(--danger);margin-top:12px;display:none;text-align:center;font-size:0.82rem;"></p>
+        <button onclick="checkLogin()" class="btn btn-primary" style="width: 100%; padding: 12px;">
+            Se connecter
+        </button>
     </div>
 </div>
 
-<!-- BACK TO TOP -->
-<button id="back-top-btn" onclick="scrollToTop()" title="Retour en haut">↑</button>
-
-<!-- TOAST CONTAINER -->
-<div id="toast-container"></div>
-
 <!-- MAIN -->
 <div id="main-content">
-
-    <!-- SIDEBAR LEFT -->
+    <!-- SIDEBAR -->
     <div id="sidebar">
         <div class="sidebar-header">
-            <h1>📍 Contact Map</h1>
-            <p id="sidebar-subtitle">Chargement...</p>
+            <h1>AzimutTrans</h1>
+            <p>Gestion des contacts</p>
         </div>
 
         <div class="sidebar-section">
-            <button class="btn-add" onclick="openModal()">+ Nouveau contact</button>
-        </div>
-
-        <div class="sidebar-section">
-            <p class="sidebar-section-title">Import / Export</p>
-            <div class="import-zone">
-                <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 8px;">Glisser un fichier ou cliquer</p>
-                <input type="file" id="excel-import" accept=".xlsx,.xls,.csv" onchange="importExcel(this)">
-            </div>
-            <a href="/api/template" download="modele_contacts.xlsx"
-               style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.75rem;
-                      color:#60a5fa;text-decoration:none;justify-content:center;padding:6px;
-                      border:1px solid var(--border);border-radius:8px;background:var(--card-bg);
-                      transition:all 0.2s;"
-               onmouseover="this.style.borderColor='#60a5fa'" onmouseout="this.style.borderColor='var(--border)'">
-                📥 Télécharger le modèle Excel
-            </a>
-            <button class="btn-ghost" style="margin-top:8px;font-size:0.75rem;padding:7px;"
-                    onclick="exportContacts()">
-                📤 Exporter les contacts (.xlsx)
-            </button>
-        </div>
-
-        <div class="sidebar-section" style="flex:1;">
-            <p class="sidebar-section-title">Filtres</p>
-            <div class="filter-group">
-                <label>Par Région</label>
-                <select id="region-select" onchange="filterData()">
-                    <option value="all">Toutes les régions</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Par Entreprise</label>
-                <select id="company-select" onchange="filterData()">
-                    <option value="all">Toutes les entreprises</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Par Portée</label>
-                <select id="scope-select" onchange="filterData()">
-                    <option value="all">Tous</option>
-                    <option value="regional">Régional uniquement</option>
-                    <option value="national">National uniquement</option>
-                    <option value="both">Régional & National</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>🚚 Par Zone de Livraison</label>
-                <select id="delivery-zone-select" onchange="filterData()">
-                    <option value="all">Toutes les zones</option>
-                </select>
-            </div>
-            <button class="btn-ghost" style="font-size:0.75rem;padding:7px;margin-top:4px;"
-                    onclick="resetFilters()">🔄 Réinitialiser les filtres</button>
-        </div>
-
-        <div class="sidebar-section" id="legend-section" style="display:none;">
-            <p class="sidebar-section-title">Légende entreprises</p>
-            <div id="legend-items"></div>
-        </div>
-
-        <div class="sidebar-section" id="no-location-section" style="display:none;">
-            <div class="no-location-section">
-                <div class="no-location-header" onclick="toggleNoLocationList()">
-                    <div class="no-location-title">
-                        <span>⚠️</span>
-                        <span>Sans localisation</span>
-                    </div>
-                    <span class="no-location-count" id="no-location-count">0</span>
+            <div class="sidebar-section-title">Statistiques</div>
+            <div class="contact-stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="total-contacts">0</span>
+                    <span class="stat-label">CONTACTS</span>
                 </div>
-                <div class="no-location-list" id="no-location-list"></div>
+                <div class="stat-card">
+                    <span class="stat-value" id="total-cities">0</span>
+                    <span class="stat-label">VILLES</span>
+                </div>
             </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Filtres</div>
+            <div class="filter-grid">
+                <div class="filter-btn active" onclick="setFilter('all')" data-filter="all">Tous</div>
+                <div class="filter-btn" onclick="setFilter('regional')" data-filter="regional">Régional</div>
+                <div class="filter-btn" onclick="setFilter('national')" data-filter="national">National</div>
+                <div class="filter-btn" onclick="setFilter('no-scope')" data-filter="no-scope">Aucun</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Régions</div>
+            <div id="region-list"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Départements</div>
+            <div id="dept-list"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Actions</div>
+            <button class="btn btn-primary" onclick="openAddContactModal()" style="width: 100%; margin-bottom: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Nouveau contact
+            </button>
+            <label class="btn" style="width: 100%; margin-bottom: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                Import Excel
+                <input type="file" accept=".xlsx,.xls" onchange="importExcel(this)" style="display: none;">
+            </label>
+            <button class="btn btn-success" onclick="exportExcel()" style="width: 100%;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Export Excel
+            </button>
         </div>
     </div>
 
     <!-- MAP -->
     <div id="map">
-        <!-- Zone Overlay Controls -->
-        <div class="zone-overlay-controls" id="zone-overlay-controls" style="display:none;">
-            <div style="font-size:0.75rem;font-weight:600;margin-bottom:8px;color:var(--text);">
-                🗺️ Zones de livraison
-            </div>
-            <div id="zone-checkboxes"></div>
-        </div>
+        <button id="map-back-btn" onclick="resetMapView()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Retour à la carte
+        </button>
     </div>
 
-    <!-- CONTACT LIST RIGHT -->
+    <!-- CONTACT LIST -->
     <div id="contact-list">
         <div class="contact-list-header">
-            <div class="contact-stats">
-                <div class="stat-card">
-                    <span class="stat-value" id="total-contacts">0</span>
-                    <span class="stat-label">Contacts</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="total-cities">0</span>
-                    <span class="stat-label">Villes</span>
-                </div>
-            </div>
             <div class="search-wrapper">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="text" id="contact-search" placeholder="Rechercher nom, ville, entreprise..."
-                       oninput="filterData()">
+                <input type="text" id="contact-search" class="search-input" placeholder="Rechercher...">
             </div>
-            <div class="sort-bar">
-                <button class="sort-btn active" id="sort-name" onclick="setSortMode('name')">A→Z Nom</button>
-                <button class="sort-btn" id="sort-company" onclick="setSortMode('company')">Entreprise</button>
-                <button class="sort-btn" id="sort-city" onclick="setSortMode('city')">Ville</button>
-            </div>
-            <button class="btn-ghost" style="font-size:0.72rem;padding:6px;" onclick="copyFilteredEmails()">
-                📋 Copier emails (filtrés)
-            </button>
         </div>
-        <div id="contacts-scroll">
-            <div id="contacts"></div>
-        </div>
+        <div id="contacts-scroll"></div>
     </div>
 </div>
 
-<!-- MODAL -->
-<div id="modal-overlay">
-    <div class="modal-content">
+<!-- MODAL ADD/EDIT -->
+<div class="modal-overlay" id="contact-modal">
+    <div class="modal-box">
         <div class="modal-header">
-            <h2 id="modal-title" style="font-size:1.1rem;">Nouveau Contact</h2>
-            <button class="close-modal" onclick="closeModal()">✕</button>
+            <h2 class="modal-title" id="modal-title">Nouveau contact</h2>
+            <button class="modal-close" onclick="closeContactModal()">×</button>
         </div>
-        <input type="hidden" id="edit-id">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <form onsubmit="saveContact(event)" id="contact-form">
+            <input type="hidden" id="edit-id">
             <div class="form-group">
-                <label>Prénom *</label>
-                <input type="text" id="first_name" placeholder="Jean">
+                <label class="form-label">Prénom *</label>
+                <input type="text" class="form-input" id="input-firstName" required>
             </div>
             <div class="form-group">
-                <label>Nom</label>
-                <input type="text" id="last_name" placeholder="Dupont">
-            </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="email" placeholder="jean@exemple.com">
+                <label class="form-label">Nom</label>
+                <input type="text" class="form-input" id="input-lastName">
             </div>
             <div class="form-group">
-                <label>Téléphone</label>
-                <input type="tel" id="phone" placeholder="06 00 00 00 00">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="input-email">
             </div>
-        </div>
-        <div class="form-group">
-            <label>Ville *</label>
-            <input type="text" id="city" placeholder="Paris" oninput="debounceCityLookup(this.value)">
-        </div>
-        <div class="form-group">
-            <label>Région <span style="font-size:0.7rem;color:var(--text-muted);">(auto)</span></label>
-            <input type="text" id="region" placeholder="Déterminée automatiquement" readonly
-                   style="opacity:0.7;cursor:not-allowed;">
-        </div>
-        <div class="form-group">
-            <label>Entreprise</label>
-            <input type="text" id="company" placeholder="ACME Inc." list="company-datalist">
-            <datalist id="company-datalist"></datalist>
-        </div>
-        <div class="form-group">
-            <label>🚚 Zone de Livraison</label>
-            <input type="text" id="delivery-zone" placeholder="Ex: Nord-Est, Île-de-France, etc." 
-                   style="border-left: 3px solid #f59e0b;">
-            <div style="margin-top:8px;">
-                <button type="button" class="btn-ghost" style="font-size:0.7rem;padding:4px 8px;" 
-                        onclick="showRegionSelector()">
-                    🗺️ Sélectionner des régions
+            <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input type="text" class="form-input" id="input-phone">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Entreprise</label>
+                <input type="text" class="form-input" id="input-company">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ville</label>
+                <input type="text" class="form-input" id="input-city" placeholder="Ex: Paris">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Zone de délivrance</label>
+                <textarea class="form-textarea" id="input-deliveryZone" placeholder="Départements ou zones couvertes..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-checkbox-wrapper">
+                    <input type="checkbox" class="form-checkbox" id="input-scopeRegional">
+                    <span class="form-label" style="margin: 0;">Portée régionale</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-checkbox-wrapper">
+                    <input type="checkbox" class="form-checkbox" id="input-scopeNational">
+                    <span class="form-label" style="margin: 0;">Portée nationale</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Enregistrer
                 </button>
+                <button type="button" class="btn" onclick="closeContactModal()" style="flex: 1;">Annuler</button>
             </div>
-            <div id="selected-regions-display" style="margin-top:6px;font-size:0.7rem;color:var(--text-muted);"></div>
-        </div>
-        <div class="form-group">
-            <label>Portée du contact</label>
-            <div class="scope-type">
-                <div class="scope-checkbox">
-                    <input type="checkbox" id="scope-regional">
-                    <label for="scope-regional">Régional</label>
-                </div>
-                <div class="scope-checkbox">
-                    <input type="checkbox" id="scope-national">
-                    <label for="scope-national">National</label>
-                </div>
-            </div>
-        </div>
-        <button id="save-btn" onclick="saveContact()">Enregistrer le contact</button>
+        </form>
     </div>
 </div>
 
-<!-- REGION SELECTOR MODAL -->
-<div id="region-selector-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2001;backdrop-filter:blur(4px);">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sidebar-bg);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3 style="margin:0;font-size:1rem;">🗺️ Sélectionner les régions</h3>
-            <button onclick="closeRegionSelector()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:0;width:28px;height:28px;">✕</button>
-        </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px;">Cochez les régions à inclure dans cette zone de livraison</p>
-        <div id="region-checkboxes-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-        <div style="margin-top:16px;display:flex;gap:8px;">
-            <button onclick="applyRegionSelection()" class="btn-add" style="flex:1;">Appliquer</button>
-            <button onclick="closeRegionSelector()" class="btn-ghost" style="flex:1;">Annuler</button>
-        </div>
-    </div>
-</div>
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<!-- BACK TO TOP -->
+<button id="back-top-btn" onclick="scrollToTop()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+    </svg>
+</button>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
 <script>
 // ══════════════════════════════════════════════
-// STATE
+// GLOBALS
 // ══════════════════════════════════════════════
-const socket = io();
-const map = L.map('map', { zoomControl: false }).setView([46.2276, 2.2137], 6);
-L.control.zoom({ position: 'topright' }).addTo(map);
-L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 20
-}).addTo(map);
-
 let contacts = [];
-let markers = {};
-let markerClusterGroup = L.markerClusterGroup({
-    maxClusterRadius: 50,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    zoomToBoundsOnClick: true
+let map = null;
+let markers = L.markerClusterGroup();
+let currentFilter = 'all';
+let selectedRegion = null;
+let selectedDept = null;
+let selectedContact = null;
+let franceGeoJSON = null;
+
+const REGIONS = [
+    "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne", "Centre-Val de Loire",
+    "Corse", "Grand Est", "Hauts-de-France", "Île-de-France", "Normandie",
+    "Nouvelle-Aquitaine", "Occitanie", "Pays de la Loire", "Provence-Alpes-Côte d'Azur"
+];
+
+const DEPT_TO_REGION = {
+    "01":"Auvergne-Rhône-Alpes","03":"Auvergne-Rhône-Alpes","07":"Auvergne-Rhône-Alpes","15":"Auvergne-Rhône-Alpes","26":"Auvergne-Rhône-Alpes","38":"Auvergne-Rhône-Alpes","42":"Auvergne-Rhône-Alpes","43":"Auvergne-Rhône-Alpes","63":"Auvergne-Rhône-Alpes","69":"Auvergne-Rhône-Alpes","73":"Auvergne-Rhône-Alpes","74":"Auvergne-Rhône-Alpes",
+    "21":"Bourgogne-Franche-Comté","25":"Bourgogne-Franche-Comté","39":"Bourgogne-Franche-Comté","58":"Bourgogne-Franche-Comté","70":"Bourgogne-Franche-Comté","71":"Bourgogne-Franche-Comté","89":"Bourgogne-Franche-Comté","90":"Bourgogne-Franche-Comté",
+    "22":"Bretagne","29":"Bretagne","35":"Bretagne","56":"Bretagne",
+    "18":"Centre-Val de Loire","28":"Centre-Val de Loire","36":"Centre-Val de Loire","37":"Centre-Val de Loire","41":"Centre-Val de Loire","45":"Centre-Val de Loire",
+    "2A":"Corse","2B":"Corse",
+    "08":"Grand Est","10":"Grand Est","51":"Grand Est","52":"Grand Est","54":"Grand Est","55":"Grand Est","57":"Grand Est","67":"Grand Est","68":"Grand Est","88":"Grand Est",
+    "02":"Hauts-de-France","59":"Hauts-de-France","60":"Hauts-de-France","62":"Hauts-de-France","80":"Hauts-de-France",
+    "75":"Île-de-France","77":"Île-de-France","78":"Île-de-France","91":"Île-de-France","92":"Île-de-France","93":"Île-de-France","94":"Île-de-France","95":"Île-de-France",
+    "14":"Normandie","27":"Normandie","50":"Normandie","61":"Normandie","76":"Normandie",
+    "16":"Nouvelle-Aquitaine","17":"Nouvelle-Aquitaine","19":"Nouvelle-Aquitaine","23":"Nouvelle-Aquitaine","24":"Nouvelle-Aquitaine","33":"Nouvelle-Aquitaine","40":"Nouvelle-Aquitaine","47":"Nouvelle-Aquitaine","64":"Nouvelle-Aquitaine","79":"Nouvelle-Aquitaine","86":"Nouvelle-Aquitaine","87":"Nouvelle-Aquitaine",
+    "09":"Occitanie","11":"Occitanie","12":"Occitanie","30":"Occitanie","31":"Occitanie","32":"Occitanie","34":"Occitanie","46":"Occitanie","48":"Occitanie","65":"Occitanie","66":"Occitanie","81":"Occitanie","82":"Occitanie",
+    "44":"Pays de la Loire","49":"Pays de la Loire","53":"Pays de la Loire","72":"Pays de la Loire","85":"Pays de la Loire",
+    "04":"Provence-Alpes-Côte d'Azur","05":"Provence-Alpes-Côte d'Azur","06":"Provence-Alpes-Côte d'Azur","13":"Provence-Alpes-Côte d'Azur","83":"Provence-Alpes-Côte d'Azur","84":"Provence-Alpes-Côte d'Azur"
+};
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+function checkLogin() {
+    const pwd = document.getElementById('password-input').value;
+    if (pwd === 'azimuttrans2025') {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-content').classList.add('visible');
+        initApp();
+    } else {
+        toast('Mot de passe incorrect', 'error');
+    }
+}
+document.getElementById('password-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') checkLogin();
 });
-map.addLayer(markerClusterGroup);
-
-let currentRegion = 'all', currentCompany = 'all', currentScope = 'all', currentDeliveryZone = 'all';
-let regionLayer, deptLayer, currentDeptDisplay;
-let companyColors = {};
-let deliveryZoneOverlays = {};
-let sortMode = 'name';
-let currentFiltered = [];
-let cityLookupTimer = null;
-
-const COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6',
-                '#ec4899','#06b6d4','#10b981','#f97316','#6366f1'];
 
 // ══════════════════════════════════════════════
-// TOAST
+// INIT
 // ══════════════════════════════════════════════
-function toast(msg, type = 'success', duration = 3500) {
-    const c = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => {
-        t.style.animation = 'toastOut 0.3s ease forwards';
-        setTimeout(() => t.remove(), 300);
-    }, duration);
-}
-
-// ══════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════
-async function login() {
-    const btn = document.getElementById('login-btn');
-    const error = document.getElementById('login-error');
-    btn.textContent = 'Connexion...';
-    btn.disabled = true;
-    error.style.display = 'none';
-    try {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: document.getElementById('login-username').value,
-                password: document.getElementById('login-password').value
-            })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('main-content').classList.add('visible');
-            await loadContacts();
-            setTimeout(() => map.invalidateSize(), 100);
-        } else {
-            error.textContent = data.message || 'Identifiants incorrects';
-            error.style.display = 'block';
-            btn.textContent = 'Se connecter';
-            btn.disabled = false;
-        }
-    } catch {
-        error.textContent = 'Erreur de connexion au serveur';
-        error.style.display = 'block';
-        btn.textContent = 'Se connecter';
-        btn.disabled = false;
-    }
-}
-
-// ══════════════════════════════════════════════
-// LOAD / REFRESH
-// ══════════════════════════════════════════════
-async function loadContacts() {
-    try {
-        const res = await fetch('/api/contacts');
-        contacts = await res.json();
-        refreshUI();
-        await init();
-    } catch (e) {
-        toast('Erreur lors du chargement des contacts', 'error');
-    }
-}
-
-function refreshUI() {
-    updateFilters();
-    updateLegend();
-    filterData();
-    updateCompanyDatalist();
-    document.getElementById('sidebar-subtitle').textContent =
-        `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`;
-}
-
-socket.on('contactsUpdated', (newContacts) => {
-    contacts = newContacts;
+async function initApp() {
+    await loadFromServer();
+    initMap();
     refreshUI();
-});
+    initBackToTopBtn();
+    document.getElementById('contact-search').addEventListener('input', filterContacts);
+}
 
 // ══════════════════════════════════════════════
-// COLORS
+// MAP
 // ══════════════════════════════════════════════
-function getCompanyColor(company) {
-    if (!company) return '#64748b';
-    if (!companyColors[company]) {
-        const idx = Object.keys(companyColors).length % COLORS.length;
-        companyColors[company] = COLORS[idx];
+function initMap() {
+    map = L.map('map').setView([46.603354, 1.888334], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors, © CARTO',
+        maxZoom: 19
+    }).addTo(map);
+    map.addLayer(markers);
+    loadFranceGeoJSON();
+}
+
+async function loadFranceGeoJSON() {
+    try {
+        const resp = await fetch('https://france-geojson.gregoiredavid.fr/repo/regions.geojson');
+        franceGeoJSON = await resp.json();
+    } catch (err) {
+        console.error('Erreur chargement GeoJSON:', err);
     }
-    return companyColors[company];
 }
 
-function updateLegend() {
-    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
-    const section = document.getElementById('legend-section');
-    const items = document.getElementById('legend-items');
-    if (companies.length === 0) { section.style.display = 'none'; return; }
-    section.style.display = 'block';
-    items.innerHTML = companies.map(c => `
-        <div class="legend-item" onclick="setCompanyFilter('${c.replace(/'/g, "\\'")}')" style="cursor:pointer;border-radius:6px;padding:3px 4px;transition:background 0.15s;" onmouseover="this.style.background='var(--card-bg)'" onmouseout="this.style.background='transparent'">
-            <div class="legend-dot" style="background:${getCompanyColor(c)}"></div>
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c}</span>
-        </div>
-    `).join('');
+function resetMapView() {
+    selectedRegion = null;
+    selectedDept = null;
+    selectedContact = null;
+    map.setView([46.603354, 1.888334], 6);
+    refreshUI();
+    hideMapBackButton();
 }
 
-function setCompanyFilter(company) {
-    currentCompany = company;
-    document.getElementById('company-select').value = company;
-    filterData();
+function showMapBackButton() {
+    document.getElementById('map-back-btn').classList.add('visible');
 }
 
-function updateCompanyDatalist() {
-    const dl = document.getElementById('company-datalist');
-    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
-    dl.innerHTML = companies.map(c => `<option value="${c}">`).join('');
-}
-
-// ══════════════════════════════════════════════
-// SORT
-// ══════════════════════════════════════════════
-function setSortMode(mode) {
-    sortMode = mode;
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`sort-${mode}`).classList.add('active');
-    filterData();
-}
-
-function sortContacts(arr) {
-    return [...arr].sort((a, b) => {
-        if (sortMode === 'name') {
-            const na = (a.firstName + ' ' + (a.lastName || '')).toLowerCase();
-            const nb = (b.firstName + ' ' + (b.lastName || '')).toLowerCase();
-            return na.localeCompare(nb, 'fr');
-        }
-        if (sortMode === 'company') {
-            return (a.company || '').localeCompare(b.company || '', 'fr');
-        }
-        if (sortMode === 'city') {
-            return (a.city || '').localeCompare(b.city || '', 'fr');
-        }
-        return 0;
-    });
+function hideMapBackButton() {
+    document.getElementById('map-back-btn').classList.remove('visible');
 }
 
 // ══════════════════════════════════════════════
 // FILTERS
 // ══════════════════════════════════════════════
-function updateFilters() {
-    const rs = document.getElementById('region-select');
-    const cs = document.getElementById('company-select');
-    const dzs = document.getElementById('delivery-zone-select');
-    const regions   = [...new Set(contacts.map(c => c.region).filter(Boolean))].sort();
-    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
-    const deliveryZones = [...new Set(contacts.map(c => c.deliveryZone).filter(Boolean))].sort();
-    
-    rs.innerHTML = '<option value="all">Toutes les régions</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join('');
-    cs.innerHTML = '<option value="all">Toutes les entreprises</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
-    dzs.innerHTML = '<option value="all">Toutes les zones</option>' + deliveryZones.map(dz => `<option value="${dz}">🚚 ${dz}</option>`).join('');
-    
-    rs.value = currentRegion;
-    cs.value = currentCompany;
-    dzs.value = currentDeliveryZone;
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.filter-btn[data-filter="${f}"]`).classList.add('active');
+    refreshUI();
 }
 
-function resetFilters() {
-    currentRegion = 'all'; currentCompany = 'all'; currentScope = 'all'; currentDeliveryZone = 'all';
-    document.getElementById('region-select').value = 'all';
-    document.getElementById('company-select').value = 'all';
-    document.getElementById('scope-select').value = 'all';
-    document.getElementById('delivery-zone-select').value = 'all';
-    document.getElementById('contact-search').value = '';
-    map.setView([46.2276, 2.2137], 6);
-    if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
-    if (regionLayer) regionLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1 }));
-    filterData();
-    toast('Filtres réinitialisés');
-}
-
-async function filterData() {
-    currentRegion  = document.getElementById('region-select').value;
-    currentCompany = document.getElementById('company-select').value;
-    currentScope   = document.getElementById('scope-select').value;
-    currentDeliveryZone = document.getElementById('delivery-zone-select').value;
-    const search   = (document.getElementById('contact-search')?.value || '').toLowerCase().trim();
-
-    // Clear markers and cluster group
-    markerClusterGroup.clearLayers();
-    markers = {};
-
-    let filtered = contacts.filter(c => {
-        if (currentRegion  !== 'all' && c.region  !== currentRegion)  return false;
-        if (currentCompany !== 'all' && c.company !== currentCompany) return false;
-        if (currentDeliveryZone !== 'all' && c.deliveryZone !== currentDeliveryZone) return false;
-        if (search) {
-            const haystack = [c.firstName, c.lastName, c.city, c.company, c.email, c.region, c.deliveryZone]
-                .map(v => (v || '').toLowerCase()).join(' ');
-            if (!haystack.includes(search)) return false;
-        }
-        if (currentScope === 'regional') return c.scopeRegional && !c.scopeNational;
-        if (currentScope === 'national') return c.scopeNational && !c.scopeRegional;
-        if (currentScope === 'both')     return c.scopeRegional && c.scopeNational;
-        return true;
-    });
-
-    filtered = sortContacts(filtered);
-    currentFiltered = filtered;
-
-    // Séparer les contacts avec et sans localisation
-    const withLocation = filtered.filter(c => c.lat != null && c.lon != null);
-    const withoutLocation = filtered.filter(c => c.lat == null || c.lon == null);
-
-    renderContacts(filtered);
-    renderNoLocationContacts(withoutLocation);
-    
-    // Ajout des marqueurs avec clustering
-    for (const contact of withLocation) {
-        await addMarkerToMap(contact);
-    }
-
-    if (regionLayer) {
-        regionLayer.eachLayer(l => l.setStyle({
-            fillOpacity: l.feature.properties.nom === currentRegion ? 0.35 : 0.08
-        }));
-    }
-
-    const totalEl = document.getElementById('total-contacts');
-    const cityEl  = document.getElementById('total-cities');
-    if (totalEl) totalEl.textContent = filtered.length;
-    if (cityEl)  cityEl.textContent  = new Set(filtered.map(c => c.city).filter(Boolean)).size;
-    
-    // Mettre à jour les zones de livraison
-    updateDeliveryZoneOverlays();
-}
-
-// ══════════════════════════════════════════════
-// REGIONS & DEPTS
-// ══════════════════════════════════════════════
-async function init() {
-    await Promise.all([loadRegions(), loadDepts()]);
-    initBackToTopBtn();
-}
-
-async function loadRegions() {
-    try {
-        const res = await fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions-version-simplifiee.geojson');
-        const data = await res.json();
-        regionLayer = L.geoJSON(data, {
-            style: () => ({ fillColor: '#6366f1', weight: 1.5, opacity: 0.7, color: '#334155', fillOpacity: 0.08 }),
-            onEachFeature: (feature, layer) => {
-                layer.on({
-                    mouseover: e => { if (map.getZoom() < 8) e.target.setStyle({ fillOpacity: 0.25, weight: 2 }); },
-                    mouseout:  e => {
-                        if (map.getZoom() < 8 && feature.properties.nom !== currentRegion)
-                            e.target.setStyle({ fillOpacity: 0.08, weight: 1.5 });
-                    },
-                    click: e => {
-                        currentRegion = feature.properties.nom;
-                        document.getElementById('region-select').value = currentRegion;
-                        map.fitBounds(e.target.getBounds(), { padding: [20, 20] });
-                        filterData();
-                        showDepts(feature.properties.code);
-                    }
-                });
-                layer.bindTooltip(feature.properties.nom, { permanent: false, sticky: true, className: 'region-tooltip' });
+function setRegionFilter(region) {
+    if (selectedRegion === region) {
+        selectedRegion = null;
+        hideMapBackButton();
+    } else {
+        selectedRegion = region;
+        selectedDept = null;
+        selectedContact = null;
+        showMapBackButton();
+        
+        // Zoomer sur la région
+        if (franceGeoJSON) {
+            const regionFeature = franceGeoJSON.features.find(f => f.properties.nom === region);
+            if (regionFeature) {
+                const bounds = L.geoJSON(regionFeature).getBounds();
+                map.fitBounds(bounds, { padding: [50, 50] });
             }
-        }).addTo(map);
-    } catch (e) { console.error('Regions load failed:', e); }
-}
-
-async function loadDepts() {
-    try {
-        const res = await fetch('departements.geojson');
-        const data = await res.json();
-        deptLayer = L.geoJSON(data);
-    } catch (e) { console.error('Depts load failed:', e); }
-}
-
-const REGION_DEPTS = {
-    '11':['75','77','78','91','92','93','94','95'],
-    '24':['18','28','36','37','41','45'],
-    '27':['21','25','39','58','70','71','89','90'],
-    '28':['14','27','50','61','76'],
-    '32':['02','59','60','62','80'],
-    '44':['08','10','51','52','54','55','57','67','68','88'],
-    '52':['44','49','53','72','85'],
-    '53':['22','29','35','56'],
-    '75':['16','17','19','23','24','33','40','47','64','79','86','87'],
-    '76':['09','11','12','30','31','32','34','46','48','65','66','81','82'],
-    '84':['01','03','07','15','26','38','42','43','63','69','73','74'],
-    '93':['04','05','06','13','83','84'],
-    '94':['2A','2B']
-};
-
-function showDepts(regionCode) {
-    if (!deptLayer) return;
-    if (currentDeptDisplay) map.removeLayer(currentDeptDisplay);
-    const depts = REGION_DEPTS[regionCode] || [];
-    const features = deptLayer.toGeoJSON().features.filter(f => depts.includes(f.properties.code));
-    if (!features.length) return;
-    currentDeptDisplay = L.geoJSON(features, {
-        style: { fillColor: '#10b981', weight: 1.5, color: '#34d399', fillOpacity: 0.15 },
-        onEachFeature: (feature, layer) => {
-            layer.bindTooltip(feature.properties.nom, { sticky: true });
-            layer.on('click', e => { L.DomEvent.stopPropagation(e); map.fitBounds(e.target.getBounds()); });
         }
-    }).addTo(map);
+    }
+    refreshUI();
+}
+
+function setDeptFilter(dept) {
+    if (selectedDept === dept) {
+        selectedDept = null;
+        hideMapBackButton();
+    } else {
+        selectedDept = dept;
+        selectedRegion = null;
+        selectedContact = null;
+        showMapBackButton();
+    }
+    refreshUI();
+}
+
+function selectContact(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+    
+    selectedContact = contactId;
+    selectedRegion = null;
+    selectedDept = null;
+    showMapBackButton();
+    
+    // Zoomer sur le contact
+    if (contact.lat && contact.lon) {
+        map.setView([contact.lat, contact.lon], 12);
+    }
+    
+    refreshUI();
+}
+
+// ══════════════════════════════════════════════
+// GEOCODING
+// ══════════════════════════════════════════════
+async function geocode(city) {
+    if (!city) return null;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)},France&format=json&limit=1&addressdetails=1`;
+    try {
+        const resp = await fetch(url, { headers: { 'User-Agent': 'AzimutTransApp' } });
+        const data = await resp.json();
+        if (data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lon: parseFloat(data[0].lon),
+                fullName: data[0].display_name
+            };
+        }
+    } catch (err) {
+        console.error('Erreur geocoding:', err);
+    }
+    return null;
 }
 
 async function findRegion(lat, lon) {
-    if (!regionLayer) return '';
-    let found = '';
-    regionLayer.eachLayer(layer => {
-        if (found) return;
-        if (layer.getBounds().contains([lat, lon])) found = layer.feature.properties.nom;
-    });
-    return found;
-}
-
-// ══════════════════════════════════════════════
-// GEOCODE
-// ══════════════════════════════════════════════
-async function geocode(city) {
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
-        const data = await res.json();
-        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
-    } catch (e) { console.error('Geocode error:', e); }
-    return null;
-}
-
-async function geocodeRegion(region) {
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(region + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
-        const data = await res.json();
-        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-    } catch (e) { console.error('Geocode region error:', e); }
-    return null;
-}
-
-let cityDebounceTimer = null;
-function debounceCityLookup(val) {
-    clearTimeout(cityDebounceTimer);
-    if (!val || val.length < 3) return;
-    cityDebounceTimer = setTimeout(async () => {
-        const regionInput = document.getElementById('region');
-        regionInput.value = '⏳ Recherche...';
-        const coords = await geocode(val);
-        if (coords) {
-            const region = await findRegion(coords.lat, coords.lon);
-            regionInput.value = region || '';
-        } else {
-            regionInput.value = '';
-        }
-    }, 700);
-}
-
-// ══════════════════════════════════════════════
-// MARKERS
-// ══════════════════════════════════════════════
-async function addMarkerToMap(contact) {
-    // Si pas de coordonnées mais une région, on essaie de géocoder la région
-    if ((contact.lat == null || contact.lon == null) && contact.region) {
-        try {
-            const regionCoords = await geocodeRegion(contact.region);
-            if (regionCoords) {
-                contact.lat = regionCoords.lat;
-                contact.lon = regionCoords.lon;
-            }
-        } catch (e) {
-            console.log('Failed to geocode region:', contact.region);
+    if (!franceGeoJSON) return null;
+    const point = L.latLng(lat, lon);
+    for (const feature of franceGeoJSON.features) {
+        const polygon = L.geoJSON(feature);
+        if (polygon.getBounds().contains(point)) {
+            return feature.properties.nom;
         }
     }
-    
-    if (contact.lat == null || contact.lon == null) return;
-    
-    const color = getCompanyColor(contact.company);
-    const isRegionOnly = !contact.city && contact.region;
-    
-    // Icône différente pour les contacts région-seulement
-    const iconHtml = isRegionOnly 
-        ? `<div style="
-            background:${color};width:16px;height:16px;border-radius:3px;
-            border:2.5px solid rgba(255,255,255,0.9);
-            box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px ${color}33;
-            transition:transform 0.15s;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;
-            font-size:10px;font-weight:bold;color:white;
-        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'">R</div>`
-        : `<div style="
-            background:${color};width:13px;height:13px;border-radius:50%;
-            border:2.5px solid rgba(255,255,255,0.9);
-            box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px ${color}33;
-            transition:transform 0.15s;cursor:pointer;
-        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>`;
-    
-    const icon = L.divIcon({
-        className: '',
-        html: iconHtml,
-        iconSize: isRegionOnly ? [16, 16] : [13, 13],
-        iconAnchor: isRegionOnly ? [8, 8] : [6, 6]
+    return null;
+}
+
+// ══════════════════════════════════════════════
+// UI REFRESH
+// ══════════════════════════════════════════════
+function refreshUI() {
+    refreshStats();
+    refreshRegionList();
+    refreshDeptList();
+    refreshContactList();
+    refreshMap();
+}
+
+function refreshStats() {
+    const filtered = getFilteredContacts();
+    const cities = [...new Set(filtered.filter(c => c.city).map(c => c.city))];
+    document.getElementById('total-contacts').textContent = filtered.length;
+    document.getElementById('total-cities').textContent = cities.length;
+}
+
+function refreshRegionList() {
+    const filtered = getFilteredContacts();
+    const regionCounts = {};
+    filtered.forEach(c => {
+        const r = c.region || 'Inconnu';
+        regionCounts[r] = (regionCounts[r] || 0) + 1;
     });
 
-    let scopeBadges = '';
-    if (contact.scopeRegional) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(34,197,94,0.15);color:#4ade80;">Régional</span>';
-    if (contact.scopeNational) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(99,102,241,0.15);color:#818cf8;">National</span>';
+    const html = REGIONS.map(r => {
+        const count = regionCounts[r] || 0;
+        if (count === 0) return '';
+        const active = selectedRegion === r ? 'active' : '';
+        return `
+            <div class="region-btn ${active}" onclick="setRegionFilter('${r}')">
+                <span>${r}</span>
+                <span class="region-count">${count}</span>
+            </div>
+        `;
+    }).join('');
+    document.getElementById('region-list').innerHTML = html;
+}
 
-    const deliveryZoneBadge = contact.deliveryZone
-        ? `<div style="margin-top:6px;display:inline-block;padding:3px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);">🚚 ${contact.deliveryZone}</div>`
-        : '';
+function refreshDeptList() {
+    const filtered = getFilteredContacts();
+    const deptCounts = {};
+    filtered.forEach(c => {
+        if (c.city) {
+            const match = c.city.match(/\((\d{2}[AB]?)\)/);
+            if (match) {
+                const dept = match[1];
+                deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+            }
+        }
+    });
 
-    const locationDisplay = isRegionOnly 
-        ? `📍 <span style="font-style:italic;opacity:0.8;">${contact.region} (région)</span>`
-        : `📍 ${contact.city}${contact.region ? ` · ${contact.region}` : ''}`;
+    const sorted = Object.entries(deptCounts).sort((a, b) => a[0].localeCompare(b[0]));
+    const html = sorted.map(([dept, count]) => {
+        const active = selectedDept === dept ? 'active' : '';
+        return `
+            <div class="dept-btn ${active}" onclick="setDeptFilter('${dept}')">
+                <span>Département ${dept}</span>
+                <span class="dept-count">${count}</span>
+            </div>
+        `;
+    }).join('');
+    document.getElementById('dept-list').innerHTML = html;
+}
 
-    const marker = L.marker([contact.lat, contact.lon], { icon });
-    marker.bindPopup(`
-        <div style="font-family:'Inter',sans-serif;min-width:190px;max-width:240px;">
-            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">${contact.firstName} ${contact.lastName || ''}${scopeBadges}</div>
-            <div style="color:${color};font-weight:600;font-size:0.78rem;margin-bottom:8px;">${contact.company || '—'}</div>
-            ${deliveryZoneBadge}
-            <hr style="border:0;border-top:1px solid #334155;margin:8px 0;">
-            ${contact.email  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📧 <a href="mailto:${contact.email}" style="color:#60a5fa;text-decoration:none;">${contact.email}</a></div>` : ''}
-            ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
-            <div style="font-size:0.8rem;color:#94a3b8;">${locationDisplay}</div>
-            <div style="margin-top:10px;display:flex;gap:6px;">
-                <button onclick="editContact('${contact.id}');map.closePopup();" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;">Modifier</button>
-                <button onclick="deleteContact('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;">Supprimer</button>
+function refreshContactList() {
+    const filtered = getFilteredContacts();
+    
+    // Séparer les contacts avec et sans localisation
+    const withLocation = filtered.filter(c => c.city);
+    const withoutLocation = filtered.filter(c => !c.city);
+    
+    // Grouper par ville
+    const cityGroups = {};
+    withLocation.forEach(c => {
+        const city = c.city;
+        if (!cityGroups[city]) cityGroups[city] = [];
+        cityGroups[city].push(c);
+    });
+    
+    let html = '';
+    
+    // Afficher les contacts sans localisation comme une feature
+    if (withoutLocation.length > 0) {
+        html += `
+            <div class="feature-section">
+                <div class="feature-section-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Contacts sans localisation (${withoutLocation.length})
+                </div>
+                <div class="feature-contacts">
+                    ${withoutLocation.map(c => renderContactCard(c)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Afficher les groupes de villes
+    const sortedCities = Object.keys(cityGroups).sort();
+    sortedCities.forEach(city => {
+        const cityContacts = cityGroups[city];
+        
+        if (cityContacts.length === 1) {
+            // Une seule personne dans cette ville : affichage direct
+            html += renderContactCard(cityContacts[0]);
+        } else {
+            // Plusieurs personnes : regroupement
+            html += `
+                <div class="city-group">
+                    <div class="city-group-header">
+                        <div class="city-group-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            ${city}
+                        </div>
+                        <span class="city-group-count">${cityContacts.length}</span>
+                    </div>
+                    <div class="city-group-contacts">
+                        ${cityContacts.map(c => renderContactCard(c)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    document.getElementById('contacts-scroll').innerHTML = html || '<p style="text-align:center;color:var(--text-muted);padding:20px;">Aucun contact</p>';
+}
+
+function renderContactCard(c) {
+    const active = selectedContact === c.id ? 'active' : '';
+    const name = `${c.firstName} ${c.lastName || ''}`.trim();
+    
+    let badges = '';
+    if (c.scopeRegional) badges += '<span class="contact-badge badge-regional">Régional</span>';
+    if (c.scopeNational) badges += '<span class="contact-badge badge-national">National</span>';
+    
+    // Afficher la zone de délivrance si le contact est sélectionné
+    let deliveryZoneHtml = '';
+    if (selectedContact === c.id && c.deliveryZone) {
+        deliveryZoneHtml = `
+            <div class="delivery-zone-info">
+                <div class="delivery-zone-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="3" width="15" height="13"/>
+                        <path d="M16 8h4l3 3v5h-7V8z"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/>
+                        <circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    Zone de délivrance
+                </div>
+                <div class="delivery-zone-content">${c.deliveryZone}</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="contact-card ${active}" onclick="selectContact('${c.id}')">
+            <div class="contact-name">${name}</div>
+            <div class="contact-meta">
+                ${c.company ? `
+                    <div class="contact-meta-line">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        </svg>
+                        <span>${c.company}</span>
+                    </div>
+                ` : ''}
+                ${c.email ? `
+                    <div class="contact-meta-line">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>${c.email}</span>
+                    </div>
+                ` : ''}
+                ${c.phone ? `
+                    <div class="contact-meta-line">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        <span>${c.phone}</span>
+                    </div>
+                ` : ''}
+                ${c.region ? `
+                    <div class="contact-meta-line">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>${c.region}</span>
+                    </div>
+                ` : ''}
+            </div>
+            ${badges ? `<div class="contact-badges">${badges}</div>` : ''}
+            ${deliveryZoneHtml}
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                <button onclick="event.stopPropagation();editContact('${c.id}')" class="btn" style="flex:1;padding:6px;font-size:0.7rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button onclick="event.stopPropagation();deleteContact('${c.id}')" class="btn btn-danger" style="flex:1;padding:6px;font-size:0.7rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
             </div>
         </div>
-    `);
-
-    // Ajouter au cluster group au lieu de directement à la carte
-    markerClusterGroup.addLayer(marker);
-
-    // Highlight contact card on marker click
-    marker.on('click', () => {
-        document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('highlighted'));
-        const card = document.querySelector(`.contact-item[data-id="${contact.id}"]`);
-        if (card) {
-            card.classList.add('highlighted');
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    });
-
-    markers[contact.id] = marker;
+    `;
 }
 
-// ══════════════════════════════════════════════
-// RENDER CONTACTS LIST
-// ══════════════════════════════════════════════
-function renderContacts(filtered) {
-    const container = document.getElementById('contacts');
-    container.innerHTML = '';
+function refreshMap() {
+    markers.clearLayers();
+    const filtered = getFilteredContacts();
+    filtered.forEach(c => {
+        if (c.lat && c.lon) {
+            const marker = L.marker([c.lat, c.lon]);
+            const name = `${c.firstName} ${c.lastName || ''}`.trim();
+            marker.bindPopup(`<strong>${name}</strong><br>${c.city || ''}`);
+            markers.addLayer(marker);
+        }
+    });
+}
 
-    if (!filtered || filtered.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                          d="M17 20h5v-2a4 4 0 00-5.196-3.793M9 20H4v-2a4 4 0 015.196-3.793M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                <p>Aucun contact trouvé</p>
-            </div>`;
-        return;
-    }
+function getFilteredContacts() {
+    let filtered = contacts;
 
-    filtered.forEach(contact => {
-        const color = getCompanyColor(contact.company);
-        let scopeBadges = '';
-        if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
-        if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
-        
-        const isRegionOnly = !contact.city && contact.region;
-        const noLoc = (contact.lat == null && !isRegionOnly) ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
-        
-        // Badge spécial pour contacts région-only
-        const regionOnlyBadge = isRegionOnly ? '<span class="no-loc-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;">🌍 Région</span>' : '';
-        
-        // Badge delivery zone avec style distinct
-        const deliveryZoneBadge = contact.deliveryZone 
-            ? `<span class="no-loc-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);font-weight:600;">🚚 ${contact.deliveryZone}</span>` 
-            : '';
+    if (currentFilter === 'regional') filtered = filtered.filter(c => c.scopeRegional);
+    else if (currentFilter === 'national') filtered = filtered.filter(c => c.scopeNational);
+    else if (currentFilter === 'no-scope') filtered = filtered.filter(c => !c.scopeRegional && !c.scopeNational);
 
-        const div = document.createElement('div');
-        div.className = 'contact-item';
-        div.dataset.id = contact.id;
-        div.style.setProperty('--company-color', color);
-        
-        // Affichage location : si région-only, affichage spécial
-        const locationDisplay = isRegionOnly 
-            ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
-            : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
-        
-        div.innerHTML = `
-            <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
-            <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
-            ${contact.email ? `<p title="${contact.email}">📧 ${contact.email}</p>` : ''}
-            ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
-            <p>${locationDisplay}</p>
-            <div class="contact-actions">
-                <button class="btn-sm btn-success" onclick="editContact('${contact.id}')">✏️ Modifier</button>
-                <button class="btn-sm btn-danger" onclick="deleteContact('${contact.id}')">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="focusOnMap('${contact.id}')">🗺</button>` : ''}
-            </div>
-        `;
+    if (selectedRegion) filtered = filtered.filter(c => c.region === selectedRegion);
+    if (selectedDept) filtered = filtered.filter(c => c.city && c.city.includes(`(${selectedDept})`));
 
-        // Click card → open popup on map
-        div.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') return;
-            if (contact.lat != null) focusOnMap(contact.id);
+    const search = document.getElementById('contact-search').value.toLowerCase();
+    if (search) {
+        filtered = filtered.filter(c => {
+            const name = `${c.firstName} ${c.lastName}`.toLowerCase();
+            const city = (c.city || '').toLowerCase();
+            const company = (c.company || '').toLowerCase();
+            return name.includes(search) || city.includes(search) || company.includes(search);
         });
-
-        container.appendChild(div);
-    });
-}
-
-function focusOnMap(id) {
-    const marker = markers[id];
-    if (!marker) return;
-    map.setView(marker.getLatLng(), 12, { animate: true });
-    setTimeout(() => marker.openPopup(), 300);
-    // Highlight card
-    document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('highlighted'));
-    const card = document.querySelector(`.contact-item[data-id="${id}"]`);
-    if (card) card.classList.add('highlighted');
-}
-
-// ══════════════════════════════════════════════
-// NO LOCATION CONTACTS
-// ══════════════════════════════════════════════
-function renderNoLocationContacts(contactsWithoutLocation) {
-    const section = document.getElementById('no-location-section');
-    const list = document.getElementById('no-location-list');
-    const count = document.getElementById('no-location-count');
-    
-    if (!contactsWithoutLocation || contactsWithoutLocation.length === 0) {
-        section.style.display = 'none';
-        return;
     }
-    
-    section.style.display = 'block';
-    count.textContent = contactsWithoutLocation.length;
-    
-    list.innerHTML = contactsWithoutLocation.map(contact => {
-        const color = getCompanyColor(contact.company);
-        return `
-            <div class="no-location-item" onclick="editContact('${contact.id}')">
-                <h4>${contact.firstName} ${contact.lastName || ''}</h4>
-                <p style="color:${color};">🏢 ${contact.company || '—'}</p>
-                ${contact.deliveryZone ? `<p>🚚 ${contact.deliveryZone}</p>` : ''}
-                ${contact.email ? `<p>📧 ${contact.email}</p>` : ''}
-            </div>
-        `;
-    }).join('');
+
+    return filtered;
 }
 
-function toggleNoLocationList() {
-    const list = document.getElementById('no-location-list');
-    list.classList.toggle('expanded');
+function filterContacts() {
+    refreshUI();
 }
 
 // ══════════════════════════════════════════════
-// DELIVERY ZONE OVERLAYS
+// CONTACT CRUD
 // ══════════════════════════════════════════════
-function updateDeliveryZoneOverlays() {
-    const controls = document.getElementById('zone-overlay-controls');
-    const checkboxes = document.getElementById('zone-checkboxes');
-    
-    // Obtenir toutes les zones de livraison uniques
-    const zones = [...new Set(contacts.map(c => c.deliveryZone).filter(Boolean))].sort();
-    
-    if (zones.length === 0) {
-        controls.style.display = 'none';
-        return;
-    }
-    
-    controls.style.display = 'block';
-    
-    // Créer les checkboxes pour chaque zone
-    checkboxes.innerHTML = zones.map((zone, idx) => {
-        const zoneColor = COLORS[idx % COLORS.length];
-        return `
-            <div class="zone-toggle">
-                <input type="checkbox" id="zone-${idx}" 
-                       onchange="toggleZoneOverlay('${zone}', this.checked, '${zoneColor}')">
-                <label for="zone-${idx}" style="color:${zoneColor};">
-                    <span style="display:inline-block;width:12px;height:12px;background:${zoneColor};border-radius:2px;margin-right:4px;"></span>
-                    ${zone}
-                </label>
-            </div>
-        `;
-    }).join('');
+function openAddContactModal() {
+    document.getElementById('modal-title').textContent = 'Nouveau contact';
+    document.getElementById('contact-form').reset();
+    document.getElementById('edit-id').value = '';
+    document.getElementById('contact-modal').classList.add('visible');
 }
 
-async function toggleZoneOverlay(zoneName, show, color) {
-    // Supprimer l'overlay existant si présent
-    if (deliveryZoneOverlays[zoneName]) {
-        map.removeLayer(deliveryZoneOverlays[zoneName]);
-        delete deliveryZoneOverlays[zoneName];
-    }
-    
-    if (!show) return;
-    
-    // Obtenir toutes les régions associées à cette zone
-    const contactsInZone = contacts.filter(c => c.deliveryZone === zoneName && c.region);
-    const regionsInZone = [...new Set(contactsInZone.map(c => c.region))];
-    
-    if (!regionLayer || regionsInZone.length === 0) return;
-    
-    // Créer un overlay pour les régions de cette zone
-    const features = [];
-    regionLayer.eachLayer(layer => {
-        if (regionsInZone.includes(layer.feature.properties.nom)) {
-            features.push(layer.feature);
+function closeContactModal() {
+    document.getElementById('contact-modal').classList.remove('visible');
+}
+
+async function saveContact(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-id').value;
+    const firstName = document.getElementById('input-firstName').value.trim();
+    const lastName = document.getElementById('input-lastName').value.trim();
+    const email = document.getElementById('input-email').value.trim();
+    const phone = document.getElementById('input-phone').value.trim();
+    const company = document.getElementById('input-company').value.trim();
+    const city = document.getElementById('input-city').value.trim();
+    const deliveryZone = document.getElementById('input-deliveryZone').value.trim();
+    const scopeRegional = document.getElementById('input-scopeRegional').checked;
+    const scopeNational = document.getElementById('input-scopeNational').checked;
+
+    let lat = null, lon = null, fullName = '', region = '';
+    if (city) {
+        toast('Géocodage en cours...', 'warning');
+        const coords = await geocode(city);
+        if (coords) {
+            lat = coords.lat;
+            lon = coords.lon;
+            fullName = coords.fullName;
+            region = await findRegion(lat, lon);
         }
-    });
-    
-    if (features.length > 0) {
-        const overlay = L.geoJSON(features, {
-            style: {
-                fillColor: color,
-                weight: 2,
-                color: color,
-                fillOpacity: 0.25,
-                opacity: 0.8
-            }
-        }).addTo(map);
-        
-        overlay.bindTooltip(`Zone: ${zoneName}`, { permanent: false, sticky: true });
-        deliveryZoneOverlays[zoneName] = overlay;
-    }
-}
-
-// ══════════════════════════════════════════════
-// SAVE / EDIT / DELETE
-// ══════════════════════════════════════════════
-async function saveContact() {
-    const btn = document.getElementById('save-btn');
-    const editId = document.getElementById('edit-id').value;
-    const firstName = document.getElementById('first_name').value.trim();
-    const lastName  = document.getElementById('last_name').value.trim();
-    const email     = document.getElementById('email').value.trim();
-    const phone     = document.getElementById('phone').value.trim();
-    const city      = document.getElementById('city').value.trim();
-    const regionInput = document.getElementById('region').value.trim();
-    const company   = document.getElementById('company').value.trim();
-    const deliveryZone = document.getElementById('delivery-zone').value.trim();
-    const scopeRegional = document.getElementById('scope-regional').checked;
-    const scopeNational = document.getElementById('scope-national').checked;
-
-    if (!firstName) {
-        toast('Le prénom est obligatoire', 'error');
-        return;
-    }
-    
-    if (!city && !regionInput) {
-        toast('La ville ou la région est obligatoire', 'error');
-        return;
     }
 
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Localisation...';
-    btn.disabled = true;
+    const nc = { firstName, lastName, email, phone, company, city, region, deliveryZone, scopeRegional, scopeNational, lat, lon, fullName };
 
-    try {
-        let coords = null;
-        let region = regionInput;
-        
-        if (city) {
-            // Géocoder la ville normalement
-            coords = await geocode(city);
-            if (!coords) throw new Error(`Ville "${city}" introuvable`);
-            region = await findRegion(coords.lat, coords.lon) || regionInput;
-        } else if (regionInput) {
-            // Si pas de ville mais une région, géocoder la région
-            coords = await geocodeRegion(regionInput);
-            if (!coords) throw new Error(`Région "${regionInput}" introuvable`);
-        }
-
-        const contactData = {
-            id: editId || Date.now().toString(),
-            firstName, lastName, email, phone, city, region, company, deliveryZone,
-            scopeRegional, scopeNational,
-            lat: coords?.lat || null, 
-            lon: coords?.lon || null, 
-            fullName: coords?.fullName || ''
-        };
-
-        if (editId) {
-            const idx = contacts.findIndex(c => c.id === editId);
-            if (idx >= 0) contacts[idx] = contactData;
-        } else {
-            contacts.push(contactData);
-        }
-
-        await saveToServer();
-        closeModal();
-        refreshUI();
-        toast(editId ? 'Contact mis à jour ✓' : 'Contact ajouté ✓');
-        if (coords) setTimeout(() => focusOnMap(contactData.id), 300);
-    } catch (err) {
-        toast(err.message, 'error');
-        btn.textContent = originalText;
-        btn.disabled = false;
+    if (id) {
+        const idx = contacts.findIndex(c => c.id === id);
+        if (idx >= 0) contacts[idx] = { ...contacts[idx], ...nc };
+        toast('Contact modifié');
+    } else {
+        contacts.push({ id: Date.now().toString() + Math.random(), ...nc });
+        toast('Contact ajouté');
     }
+
+    await saveToServer();
+    closeContactModal();
+    refreshUI();
 }
 
 function editContact(id) {
     const c = contacts.find(x => x.id === id);
     if (!c) return;
-    document.getElementById('edit-id').value       = c.id;
-    document.getElementById('first_name').value    = c.firstName || '';
-    document.getElementById('last_name').value     = c.lastName  || '';
-    document.getElementById('email').value         = c.email     || '';
-    document.getElementById('phone').value         = c.phone     || '';
-    document.getElementById('city').value          = c.city      || '';
-    document.getElementById('region').value        = c.region    || '';
-    document.getElementById('company').value       = c.company   || '';
-    document.getElementById('delivery-zone').value = c.deliveryZone || '';
-    document.getElementById('scope-regional').checked = !!c.scopeRegional;
-    document.getElementById('scope-national').checked = !!c.scopeNational;
+
     document.getElementById('modal-title').textContent = 'Modifier le contact';
-    document.getElementById('save-btn').textContent    = 'Mettre à jour';
-    openModal();
+    document.getElementById('edit-id').value = c.id;
+    document.getElementById('input-firstName').value = c.firstName || '';
+    document.getElementById('input-lastName').value = c.lastName || '';
+    document.getElementById('input-email').value = c.email || '';
+    document.getElementById('input-phone').value = c.phone || '';
+    document.getElementById('input-company').value = c.company || '';
+    document.getElementById('input-city').value = c.city || '';
+    document.getElementById('input-deliveryZone').value = c.deliveryZone || '';
+    document.getElementById('input-scopeRegional').checked = c.scopeRegional || false;
+    document.getElementById('input-scopeNational').checked = c.scopeNational || false;
+
+    document.getElementById('contact-modal').classList.add('visible');
 }
 
 async function deleteContact(id) {
-    const c = contacts.find(x => x.id === id);
-    if (!c) return;
-    if (!confirm(`Supprimer ${c.firstName} ${c.lastName || ''} ?`)) return;
-    contacts = contacts.filter(x => x.id !== id);
+    if (!confirm('Supprimer ce contact ?')) return;
+    contacts = contacts.filter(c => c.id !== id);
     await saveToServer();
     refreshUI();
     toast('Contact supprimé');
 }
 
+// ══════════════════════════════════════════════
+// SERVER STORAGE
+// ══════════════════════════════════════════════
 async function saveToServer() {
-    const res = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contacts)
-    });
-    if (!res.ok) throw new Error('Erreur serveur lors de la sauvegarde');
-}
-
-// ══════════════════════════════════════════════
-// MODAL
-// ══════════════════════════════════════════════
-function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
-
-function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
-    resetForm();
-}
-
-function resetForm() {
-    ['edit-id','first_name','last_name','email','phone','city','region','company','delivery-zone'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('scope-regional').checked = false;
-    document.getElementById('scope-national').checked = false;
-    document.getElementById('modal-title').textContent  = 'Nouveau Contact';
-    document.getElementById('save-btn').textContent     = 'Enregistrer le contact';
-    document.getElementById('save-btn').disabled        = false;
-}
-
-// Click outside modal to close
-document.getElementById('modal-overlay').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modal-overlay')) closeModal();
-});
-
-// ══════════════════════════════════════════════
-// REGION SELECTOR
-// ══════════════════════════════════════════════
-const FRENCH_REGIONS = [
-    'Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne',
-    'Centre-Val de Loire', 'Corse', 'Grand Est', 'Hauts-de-France',
-    'Île-de-France', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie',
-    'Pays de la Loire', 'Provence-Alpes-Côte d\'Azur'
-];
-
-let selectedRegionsTemp = [];
-
-function showRegionSelector() {
-    const modal = document.getElementById('region-selector-modal');
-    const list = document.getElementById('region-checkboxes-list');
-    
-    // Obtenir les régions actuellement dans la zone
-    const currentZone = document.getElementById('delivery-zone').value.trim();
-    selectedRegionsTemp = [];
-    
-    // Créer les checkboxes
-    list.innerHTML = FRENCH_REGIONS.map((region, idx) => `
-        <div style="display:flex;align-items:center;gap:6px;padding:6px;background:var(--card-bg);border-radius:6px;">
-            <input type="checkbox" id="region-cb-${idx}" value="${region}" 
-                   style="width:16px;height:16px;">
-            <label for="region-cb-${idx}" style="font-size:0.75rem;cursor:pointer;flex:1;">${region}</label>
-        </div>
-    `).join('');
-    
-    modal.style.display = 'block';
-}
-
-function closeRegionSelector() {
-    document.getElementById('region-selector-modal').style.display = 'none';
-    selectedRegionsTemp = [];
-}
-
-function applyRegionSelection() {
-    const checkboxes = document.querySelectorAll('#region-checkboxes-list input[type="checkbox"]:checked');
-    const selectedRegions = Array.from(checkboxes).map(cb => cb.value);
-    
-    if (selectedRegions.length === 0) {
-        toast('Aucune région sélectionnée', 'warning');
-        return;
+    try {
+        const resp = await fetch('https://azimuttrans-api.replit.app/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contacts })
+        });
+        if (!resp.ok) throw new Error('Erreur serveur');
+    } catch (err) {
+        console.error('Erreur sauvegarde:', err);
+        toast('Erreur de sauvegarde', 'error');
     }
-    
-    // Mettre à jour le champ delivery-zone avec un nom généré
-    const zoneName = selectedRegions.length === 1 
-        ? selectedRegions[0]
-        : `Zone ${selectedRegions.length} régions`;
-    
-    document.getElementById('delivery-zone').value = zoneName;
-    
-    // Afficher les régions sélectionnées
-    const display = document.getElementById('selected-regions-display');
-    display.innerHTML = `<strong>Régions:</strong> ${selectedRegions.join(', ')}`;
-    
-    closeRegionSelector();
-    toast(`${selectedRegions.length} région(s) sélectionnée(s)`);
 }
 
-// ══════════════════════════════════════════════
-// EMAILS
-// ══════════════════════════════════════════════
-function copyFilteredEmails() {
-    const emails = currentFiltered.map(c => c.email).filter(Boolean);
-    if (!emails.length) { toast('Aucun email dans la sélection actuelle', 'warning'); return; }
-    navigator.clipboard.writeText(emails.join('; ')).then(() => {
-        toast(`${emails.length} email(s) copié(s) ✓`);
-    });
+async function loadFromServer() {
+    try {
+        const resp = await fetch('https://azimuttrans-api.replit.app/load');
+        if (resp.ok) {
+            const data = await resp.json();
+            contacts = data.contacts || [];
+        }
+    } catch (err) {
+        console.error('Erreur chargement:', err);
+    }
 }
 
 // ══════════════════════════════════════════════
 // EXPORT EXCEL
 // ══════════════════════════════════════════════
-function exportContacts() {
-    if (!contacts.length) { toast('Aucun contact à exporter', 'warning'); return; }
-    const rows = contacts.map(c => ({
-        Region: c.region || '',
-        delivery_zone: c.deliveryZone || '',
-        city: c.city || '',
-        Company: c.company || '',
-        Scope: [c.scopeRegional ? 'Régional' : '', c.scopeNational ? 'National' : ''].filter(Boolean).join(' , '),
-        first_name: c.firstName || '',
-        last_name: c.lastName || '',
-        phone: c.phone || '',
-        email: c.email || ''
+function exportExcel() {
+    if (contacts.length === 0) {
+        toast('Aucun contact à exporter', 'warning');
+        return;
+    }
+    const data = contacts.map(c => ({
+        Prenom: c.firstName,
+        Nom: c.lastName,
+        Email: c.email,
+        Phone: c.phone,
+        Company: c.company,
+        Ville: c.city,
+        Region: c.region,
+        'Zone de délivrance': c.deliveryZone,
+        Scope: (c.scopeRegional ? 'Régional ' : '') + (c.scopeNational ? 'National' : '')
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-    XLSX.writeFile(wb, `contacts_azimut_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast(`${contacts.length} contacts exportés ✓`);
+    XLSX.writeFile(wb, 'contacts_azimuttrans.xlsx');
+    toast('Export réussi');
 }
 
 // ══════════════════════════════════════════════
@@ -1861,7 +1560,7 @@ async function importExcel(input) {
                 const email     = (row.email      || row.Email     || '').toString().trim();
                 const phone     = (row.phone      || row.Phone     || row.Telephone  || '').toString().trim();
                 const regionFF  = (row.Region     || row.region    || '').toString().trim();
-                const deliveryZone = (row.delivery_zone || '').toString().trim();
+                const deliveryZone = (row.delivery_zone || row['Zone de délivrance'] || '').toString().trim();
                 const { scopeRegional, scopeNational } = parseScope(row.Scope || row.scope || '');
 
                 if (!firstName && !city) { skipped++; showImportProgress('Import...', i+1, rows.length); continue; }
@@ -1929,6 +1628,21 @@ function initBackToTopBtn() {
     };
     document.getElementById('sidebar').addEventListener('scroll', checkScroll);
     document.getElementById('contacts-scroll').addEventListener('scroll', checkScroll);
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icon = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '✅';
+    toast.innerHTML = `<span style="font-size:1.2rem;">${icon}</span><span>${msg}</span>`;
+    
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 </script>
 </body>
