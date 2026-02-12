@@ -683,9 +683,8 @@ let sortMode = 'name';
 let currentFiltered = [];
 let cityLookupTimer = null;
 
-const COLORS = ['#6366f1','#ef4444','#10b981','#f59e0b','#3b82f6',
-                '#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316',
-                '#14b8a6','#e879f9','#fb923c','#a3e635','#38bdf8'];
+const COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6',
+                '#ec4899','#06b6d4','#10b981','#f97316','#6366f1'];
 
 // ══════════════════════════════════════════════
 // TOAST
@@ -860,7 +859,7 @@ function resetFilters() {
     toast('Filtres réinitialisés');
 }
 
-function filterData() {
+async function filterData() {
     currentRegion  = document.getElementById('region-select').value;
     currentCompany = document.getElementById('company-select').value;
     currentScope   = document.getElementById('scope-select').value;
@@ -888,7 +887,11 @@ function filterData() {
     currentFiltered = filtered;
 
     renderContacts(filtered);
-    filtered.forEach(addMarkerToMap);
+    
+    // Ajout des marqueurs avec support asynchrone
+    for (const contact of filtered) {
+        await addMarkerToMap(contact);
+    }
 
     if (regionLayer) {
         regionLayer.eachLayer(l => l.setStyle({
@@ -999,6 +1002,16 @@ async function geocode(city) {
     return null;
 }
 
+async function geocodeRegion(region) {
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(region + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
+        const data = await res.json();
+        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    } catch (e) { console.error('Geocode region error:', e); }
+    return null;
+}
+
 let cityDebounceTimer = null;
 function debounceCityLookup(val) {
     clearTimeout(cityDebounceTimer);
@@ -1019,24 +1032,56 @@ function debounceCityLookup(val) {
 // ══════════════════════════════════════════════
 // MARKERS
 // ══════════════════════════════════════════════
-function addMarkerToMap(contact) {
+async function addMarkerToMap(contact) {
+    // Si pas de coordonnées mais une région, on essaie de géocoder la région
+    if ((contact.lat == null || contact.lon == null) && contact.region) {
+        try {
+            const regionCoords = await geocodeRegion(contact.region);
+            if (regionCoords) {
+                contact.lat = regionCoords.lat;
+                contact.lon = regionCoords.lon;
+            }
+        } catch (e) {
+            console.log('Failed to geocode region:', contact.region);
+        }
+    }
+    
     if (contact.lat == null || contact.lon == null) return;
+    
     const color = getCompanyColor(contact.company);
-    const icon = L.divIcon({
-        className: '',
-        html: `<div style="
+    const isRegionOnly = !contact.city && contact.region;
+    
+    // Icône différente pour les contacts région-seulement
+    const iconHtml = isRegionOnly 
+        ? `<div style="
+            background:${color};width:16px;height:16px;border-radius:3px;
+            border:2.5px solid rgba(255,255,255,0.9);
+            box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px ${color}33;
+            transition:transform 0.15s;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;
+            font-size:10px;font-weight:bold;color:white;
+        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'">R</div>`
+        : `<div style="
             background:${color};width:13px;height:13px;border-radius:50%;
             border:2.5px solid rgba(255,255,255,0.9);
             box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px ${color}33;
             transition:transform 0.15s;cursor:pointer;
-        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>`,
-        iconSize: [13, 13],
-        iconAnchor: [6, 6]
+        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>`;
+    
+    const icon = L.divIcon({
+        className: '',
+        html: iconHtml,
+        iconSize: isRegionOnly ? [16, 16] : [13, 13],
+        iconAnchor: isRegionOnly ? [8, 8] : [6, 6]
     });
 
     let scopeBadges = '';
     if (contact.scopeRegional) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(34,197,94,0.15);color:#4ade80;">Régional</span>';
     if (contact.scopeNational) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(99,102,241,0.15);color:#818cf8;">National</span>';
+
+    const locationDisplay = isRegionOnly 
+        ? `📍 <span style="font-style:italic;opacity:0.8;">${contact.region} (région)</span>`
+        : `📍 ${contact.city}${contact.region ? ` · ${contact.region}` : ''}`;
 
     const marker = L.marker([contact.lat, contact.lon], { icon }).addTo(map);
     marker.bindPopup(`
@@ -1046,7 +1091,7 @@ function addMarkerToMap(contact) {
             <hr style="border:0;border-top:1px solid #334155;margin:0 0 8px;">
             ${contact.email  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📧 <a href="mailto:${contact.email}" style="color:#60a5fa;text-decoration:none;">${contact.email}</a></div>` : ''}
             ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
-            <div style="font-size:0.8rem;color:#94a3b8;">📍 ${contact.city}${contact.region ? ` · ${contact.region}` : ''}</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${locationDisplay}</div>
             <div style="margin-top:10px;display:flex;gap:6px;">
                 <button onclick="editContact('${contact.id}');map.closePopup();" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;">Modifier</button>
                 <button onclick="deleteContact('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;">Supprimer</button>
@@ -1091,18 +1136,29 @@ function renderContacts(filtered) {
         let scopeBadges = '';
         if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
         if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
-        const noLoc = contact.lat == null ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
+        
+        const isRegionOnly = !contact.city && contact.region;
+        const noLoc = (contact.lat == null && !isRegionOnly) ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
+        
+        // Badge spécial pour contacts région-only
+        const regionOnlyBadge = isRegionOnly ? '<span class="no-loc-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;">🌍 Région</span>' : '';
 
         const div = document.createElement('div');
         div.className = 'contact-item';
         div.dataset.id = contact.id;
         div.style.setProperty('--company-color', color);
+        
+        // Affichage location : si région-only, affichage spécial
+        const locationDisplay = isRegionOnly 
+            ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
+            : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
+        
         div.innerHTML = `
-            <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}</h3>
+            <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}</h3>
             <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
             ${contact.email ? `<p title="${contact.email}">📧 ${contact.email}</p>` : ''}
             ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
-            <p>📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}</p>
+            <p>${locationDisplay}</p>
             <div class="contact-actions">
                 <button class="btn-sm btn-success" onclick="editContact('${contact.id}')">✏️ Modifier</button>
                 <button class="btn-sm btn-danger" onclick="deleteContact('${contact.id}')">🗑 Supprimer</button>
@@ -1142,12 +1198,18 @@ async function saveContact() {
     const email     = document.getElementById('email').value.trim();
     const phone     = document.getElementById('phone').value.trim();
     const city      = document.getElementById('city').value.trim();
+    const regionInput = document.getElementById('region').value.trim();
     const company   = document.getElementById('company').value.trim();
     const scopeRegional = document.getElementById('scope-regional').checked;
     const scopeNational = document.getElementById('scope-national').checked;
 
-    if (!firstName || !city) {
-        toast('Le prénom et la ville sont obligatoires', 'error');
+    if (!firstName) {
+        toast('Le prénom est obligatoire', 'error');
+        return;
+    }
+    
+    if (!city && !regionInput) {
+        toast('La ville ou la région est obligatoire', 'error');
         return;
     }
 
@@ -1156,15 +1218,27 @@ async function saveContact() {
     btn.disabled = true;
 
     try {
-        const coords = await geocode(city);
-        if (!coords) throw new Error(`Ville "${city}" introuvable`);
+        let coords = null;
+        let region = regionInput;
+        
+        if (city) {
+            // Géocoder la ville normalement
+            coords = await geocode(city);
+            if (!coords) throw new Error(`Ville "${city}" introuvable`);
+            region = await findRegion(coords.lat, coords.lon) || regionInput;
+        } else if (regionInput) {
+            // Si pas de ville mais une région, géocoder la région
+            coords = await geocodeRegion(regionInput);
+            if (!coords) throw new Error(`Région "${regionInput}" introuvable`);
+        }
 
-        const region = await findRegion(coords.lat, coords.lon);
         const contactData = {
             id: editId || Date.now().toString(),
             firstName, lastName, email, phone, city, region, company,
             scopeRegional, scopeNational,
-            lat: coords.lat, lon: coords.lon, fullName: coords.fullName
+            lat: coords?.lat || null, 
+            lon: coords?.lon || null, 
+            fullName: coords?.fullName || ''
         };
 
         if (editId) {
