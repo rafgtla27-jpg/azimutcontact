@@ -1026,7 +1026,21 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const sheetName = workbook.SheetNames[0];
+
+                    // Trouver la feuille qui contient les colonnes de contacts (pas forcément la première)
+                    const contactColumns = ['city', 'first_name', 'ville', 'prenom', 'first name'];
+                    let sheetName = workbook.SheetNames[0];
+                    for (const name of workbook.SheetNames) {
+                        const testRows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 });
+                        if (testRows.length > 0) {
+                            const headers = (testRows[0] || []).map(h => String(h || '').toLowerCase().trim());
+                            if (contactColumns.some(col => headers.includes(col))) {
+                                sheetName = name;
+                                break;
+                            }
+                        }
+                    }
+
                     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
                     if (rows.length === 0) {
