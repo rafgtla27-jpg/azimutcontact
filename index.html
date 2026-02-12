@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Map | Modern</title>
+    <title>Contact Map | AzimutTrans</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -13,427 +13,525 @@
             --primary-hover: #4f46e5;
             --bg: #0f172a;
             --sidebar-bg: #1e293b;
-            --card-bg: #334155;
-            --text: #f8fafc;
+            --card-bg: #263548;
+            --card-hover: #2e4060;
+            --text: #f1f5f9;
             --text-muted: #94a3b8;
-            --border: #475569;
+            --border: #334155;
             --success: #22c55e;
             --danger: #ef4444;
-            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --warning: #f59e0b;
         }
 
-        body { 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            display: flex; 
-            height: 100vh; 
-            background: var(--bg); 
-            color: var(--text);
-        }
+        *, *::before, *::after { box-sizing: border-box; }
 
-        #login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
-            z-index: 2000;
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ── LOGIN ── */
+        #login-overlay {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            z-index: 3000;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-
         .login-box {
             background: var(--sidebar-bg);
-            padding: 40px;
-            border-radius: 16px;
+            padding: 48px 40px;
+            border-radius: 20px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
             border: 1px solid var(--border);
         }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-logo span {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .login-logo p { color: var(--text-muted); font-size: 0.875rem; margin: 4px 0 0; }
 
+        /* ── LAYOUT ── */
         #main-content {
             display: none;
             width: 100%;
             height: 100vh;
             flex-direction: row;
         }
-        #main-content.visible {
-            display: flex !important;
-        }
-        
-        #sidebar { 
-            width: 320px;
-            min-width: 320px;
-            padding: 20px; 
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border); 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
-            gap: 16px;
-            box-shadow: 10px 0 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            height: 100vh;
-        }
+        #main-content.visible { display: flex !important; }
 
-        #map { 
-            flex: 1;
-            height: 100vh;
-            min-width: 0;
-        }
-
-        #contact-list {
+        /* ── SIDEBAR ── */
+        #sidebar {
             width: 300px;
             min-width: 300px;
-            background: var(--sidebar-bg);
-            border-left: 1px solid var(--border);
-            overflow-y: auto;
-            padding: 16px;
             height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
+            gap: 0;
+            z-index: 10;
+        }
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #1e293b 0%, #162032 100%);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .sidebar-header h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0 0 2px;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-header p { margin: 0; font-size: 0.7rem; color: var(--text-muted); }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-section-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin: 0 0 10px;
         }
 
-        h2 { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text); }
+        /* ── MAP ── */
+        #map { flex: 1; height: 100vh; min-width: 0; }
 
-        .contact-item { 
-            background: rgba(51, 65, 85, 0.4);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            padding: 16px; 
-            margin-bottom: 12px; 
-            border-radius: 12px; 
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+        /* ── CONTACT LIST ── */
+        #contact-list {
+            width: 310px;
+            min-width: 310px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
-        .contact-item::before {
-            content: '';
-            position: absolute;
+        .contact-list-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #1e293b 0%, #162032 100%);
+            position: sticky;
             top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--company-color, var(--primary));
-            transition: width 0.2s ease;
+            flex-shrink: 0;
         }
-        .contact-item:hover::before { width: 8px; }
-        .contact-item:hover {
-            background: rgba(51, 65, 85, 0.6);
-            transform: translateX(4px);
-            border-color: var(--company-color, var(--primary));
+        #contacts-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
         }
-        .contact-item h3 { 
-            margin: 0 0 4px 0; 
-            font-size: 1rem; 
-            font-weight: 600;
-        }
-        .contact-item p { 
-            margin: 4px 0; 
-            font-size: 0.875rem; 
-            color: var(--text-muted);
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
+        #contacts-scroll::-webkit-scrollbar { width: 4px; }
+        #contacts-scroll::-webkit-scrollbar-track { background: transparent; }
+        #contacts-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+        /* ── STATS ── */
         .contact-stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
             margin-bottom: 12px;
         }
-
         .stat-card {
             background: var(--card-bg);
-            padding: 12px;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
             text-align: center;
             border: 1px solid var(--border);
         }
+        .stat-value { display: block; font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+        .stat-label { display: block; font-size: 0.65rem; color: var(--text-muted); margin-top: 1px; }
 
-        .stat-value {
-            display: block;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            display: block;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .search-container {
-            margin-bottom: 16px;
-        }
-
-        .search-input-wrapper {
+        /* ── SEARCH ── */
+        .search-wrapper {
             position: relative;
+            margin-bottom: 10px;
         }
-
-        .search-input-wrapper input {
-            padding-left: 36px;
-        }
-
-        .form-group { margin-bottom: 16px; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 6px; 
-            font-size: 0.875rem; 
-            font-weight: 500;
+        .search-wrapper svg {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
             color: var(--text-muted);
+            pointer-events: none;
         }
+        .search-wrapper input { padding-left: 34px; }
 
-        input, select { 
-            width: 100%; 
-            padding: 10px 12px; 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            background: var(--card-bg); 
-            color: var(--text); 
-            font-size: 0.875rem;
-            transition: all 0.2s;
+        /* ── SORT BAR ── */
+        .sort-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
         }
-        
-        input:focus, select:focus { 
-            outline: none; 
-            border-color: var(--primary); 
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        .sort-btn {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            width: auto;
+            transition: all 0.15s;
+            white-space: nowrap;
         }
-        
-        button { 
-            background: var(--primary); 
-            color: var(--text); 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 500; 
-            font-size: 0.875rem;
-            transition: all 0.2s;
-            width: 100%;
-        }
-        button:hover { background: var(--primary-hover); }
-        
-        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
-        .edit-btn { background: var(--success); }
-        .edit-btn:hover { background: #16a34a; }
-        .delete-btn { background: var(--danger); }
-        .delete-btn:hover { background: #dc2626; }
+        .sort-btn:hover { border-color: var(--primary); color: var(--text); background: var(--card-hover); }
+        .sort-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
 
-        .import-section { 
-            margin-top: 8px; 
-            padding: 16px; 
-            border: 2px dashed var(--border); 
-            border-radius: 12px; 
-            text-align: center;
-        }
-
-        .region-filter { 
-            padding: 16px; 
-            background: var(--card-bg); 
+        /* ── CONTACT CARD ── */
+        .contact-item {
+            background: var(--card-bg);
+            padding: 12px 12px 12px 16px;
+            margin-bottom: 8px;
             border-radius: 12px;
             border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .filter-group label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Scope Type Styles */
-        .scope-type {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .scope-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--card-bg);
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            border-left: 3px solid var(--company-color, var(--primary));
+            transition: all 0.2s ease;
             cursor: pointer;
-            transition: all 0.2s;
+            position: relative;
         }
-
-        .scope-checkbox:hover {
+        .contact-item:hover {
+            background: var(--card-hover);
+            border-color: var(--company-color, var(--primary));
+            transform: translateX(2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .contact-item.highlighted {
+            background: var(--card-hover);
             border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.3);
         }
-
-        .scope-checkbox input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .scope-checkbox label {
-            margin: 0;
-            cursor: pointer;
+        .contact-item h3 {
+            margin: 0 0 3px;
             font-size: 0.875rem;
-            color: var(--text);
+            font-weight: 600;
+            line-height: 1.3;
         }
+        .contact-item p {
+            margin: 2px 0;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .contact-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .contact-item:hover .contact-actions { opacity: 1; }
 
+        /* ── BADGES ── */
         .scope-badge {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.62rem;
             font-weight: 600;
             margin-left: 4px;
+            vertical-align: middle;
         }
+        .scope-badge.regional { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+        .scope-badge.national { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
 
-        .scope-badge.regional {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .scope-badge.national {
-            background: rgba(99, 102, 241, 0.2);
-            color: #6366f1;
-        }
-
-        /* Reset View Button */
-        .reset-view-btn {
-            background: var(--card-bg);
+        /* ── INPUTS ── */
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            font-weight: 500;
             color: var(--text-muted);
+        }
+        input, select {
+            width: 100%;
+            padding: 9px 12px;
             border: 1px solid var(--border);
-            padding: 8px 12px;
-            font-size: 0.75rem;
-            margin-bottom: 8px;
-        }
-
-        .reset-view-btn:hover {
-            background: var(--primary);
+            border-radius: 8px;
+            background: var(--card-bg);
             color: var(--text);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        input:focus, select:focus {
+            outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
         }
 
-        /* Modal Styles */
+        /* ── BUTTONS ── */
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        button:active { transform: translateY(0); }
+        .btn-sm { padding: 5px 10px; font-size: 0.72rem; width: auto; border-radius: 6px; }
+        .btn-success { background: #166534; color: #4ade80; border: 1px solid #15803d; }
+        .btn-success:hover { background: #15803d; }
+        .btn-danger { background: #7f1d1d; color: #f87171; border: 1px solid #991b1b; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-ghost { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--card-hover); color: var(--text); box-shadow: none; }
+        .btn-add {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 11px;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        .btn-add:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
+
+        /* ── FILTERS ── */
+        .filter-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .filter-group:last-child { margin-bottom: 0; }
+        .filter-group label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
+
+        /* ── SCOPE CHECKBOXES ── */
+        .scope-type { display: flex; gap: 8px; flex-wrap: wrap; }
+        .scope-checkbox {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--card-bg); padding: 7px 12px;
+            border-radius: 8px; border: 1px solid var(--border);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .scope-checkbox:hover { border-color: var(--primary); background: var(--card-hover); }
+        .scope-checkbox input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; accent-color: var(--primary); }
+        .scope-checkbox label { margin: 0; cursor: pointer; font-size: 0.82rem; }
+
+        /* ── IMPORT ── */
+        .import-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .import-zone:hover { border-color: var(--primary); }
+        .import-zone input[type="file"] { font-size: 0.72rem; color: var(--text-muted); width: 100%; }
+
+        /* ── LEGEND ── */
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.78rem; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── MODAL ── */
         #modal-overlay {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--modal-overlay);
-            z-index: 1000;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 2000;
             justify-content: center;
             align-items: center;
+            backdrop-filter: blur(4px);
         }
+        #modal-overlay.open { display: flex; }
         .modal-content {
             background: var(--sidebar-bg);
-            padding: 32px;
-            border-radius: 16px;
+            padding: 28px;
+            border-radius: 18px;
             width: 90%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
             border: 1px solid var(--border);
+            animation: modalIn 0.2s ease;
         }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .close-modal {
-            background: transparent;
-            color: var(--text-muted);
-            width: auto;
-            padding: 0;
-            font-size: 1.5rem;
-        }
-        .close-modal:hover { background: transparent; color: var(--text); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { background: transparent; color: var(--text-muted); width: auto; padding: 4px 8px; font-size: 1.3rem; border-radius: 6px; }
+        .close-modal:hover { background: var(--card-bg); color: var(--text); transform: none; box-shadow: none; }
 
-        /* Leaflet Dark Mode Customization */
-        .leaflet-container {
-            background: #111827 !important;
+        /* ── TOAST ── */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 8px;
+            z-index: 9998; pointer-events: none;
         }
-        .leaflet-popup-content-wrapper {
+        .toast {
             background: var(--sidebar-bg);
-            color: var(--text);
-            border-radius: 12px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--success);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.82rem;
+            max-width: 320px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            animation: toastIn 0.3s ease;
+            pointer-events: all;
         }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(20px); }
+        }
+
+        /* ── BACK TO TOP ── */
+        #back-top-btn {
+            position: fixed; top: 16px; left: 16px;
+            z-index: 1500;
+            background: var(--primary);
+            color: white; border: none; border-radius: 50%;
+            width: 38px; height: 38px; font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+            display: none; align-items: center; justify-content: center;
+            transition: all 0.2s; width: 38px;
+        }
+        #back-top-btn:hover { background: var(--primary-hover); transform: scale(1.1) translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
+        #back-top-btn.visible { display: flex; }
+
+        /* ── LEAFLET CUSTOM ── */
+        .leaflet-container { background: #0d1526 !important; }
+        .leaflet-popup-content-wrapper {
+            background: var(--sidebar-bg); color: var(--text);
+            border-radius: 12px; border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .leaflet-popup-content { margin: 14px 16px; }
         .leaflet-popup-tip { background: var(--sidebar-bg); }
+        .leaflet-popup-close-button { color: var(--text-muted) !important; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 16px;
+            color: var(--text-muted);
+        }
+        .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+        .empty-state p { font-size: 0.82rem; margin: 0; }
+
+        /* ── NO LOCATION BADGE ── */
+        .no-loc-badge {
+            display: inline-block;
+            background: rgba(245,158,11,0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245,158,11,0.2);
+            border-radius: 4px;
+            font-size: 0.6rem;
+            padding: 1px 5px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
-    <div id="login-overlay">
-        <div class="login-box">
-            <h2 style="margin-bottom: 24px; text-align: center;">Connexion</h2>
-            <div class="form-group">
-                <label>Nom d'utilisateur</label>
-                <input type="text" id="login-username">
-            </div>
-            <div class="form-group">
-                <label>Mot de passe</label>
-                <input type="password" id="login-password" onkeypress="if(event.key==='Enter') login()">
-            </div>
-            <button onclick="login()">Se connecter</button>
-            <p id="login-error" style="color: var(--danger); margin-top: 16px; display: none; text-align: center; font-size: 0.875rem;"></p>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+    <div class="login-box">
+        <div class="login-logo">
+            <span>AzimutTrans</span>
+            <p>Carte des contacts commerciaux</p>
         </div>
+        <div class="form-group">
+            <label>Nom d'utilisateur</label>
+            <input type="text" id="login-username" placeholder="Identifiant" autofocus>
+        </div>
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="login-password" placeholder="••••••••"
+                   onkeydown="if(event.key==='Enter') login()">
+        </div>
+        <button onclick="login()" id="login-btn">Se connecter</button>
+        <p id="login-error" style="color:var(--danger);margin-top:12px;display:none;text-align:center;font-size:0.82rem;"></p>
     </div>
+</div>
 
-    <!-- Bouton retour flottant haut-gauche (hors main-content) -->
-    <button id="back-top-btn" onclick="scrollSidebarToTop()" title="Retour en haut" style="
-        position: fixed;
-        top: 16px;
-        left: 16px;
-        z-index: 1500;
-        background: #6366f1;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 42px;
-        height: 42px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(99,102,241,0.5);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s, background 0.2s;
-    " onmouseover="this.style.background='#4f46e5';this.style.transform='scale(1.1)'"
-       onmouseout="this.style.background='#6366f1';this.style.transform='scale(1)'">↑</button>
+<!-- BACK TO TOP -->
+<button id="back-top-btn" onclick="scrollToTop()" title="Retour en haut">↑</button>
 
-    <div id="main-content">
-        <div id="sidebar">
-        <button onclick="openModal()" style="margin-bottom: 20px;">+ Ajouter un contact</button>
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
 
-        <div class="import-section">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.75rem; color: var(--text-muted);">IMPORTER DES DONNÉES (.xlsx, .csv)</label>
-            <input type="file" id="excel-import" accept=".xlsx, .xls, .csv" onchange="importExcel(this)" style="font-size: 0.75rem;">
-            <a href="/api/template" download="modele_contacts.xlsx" style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#60a5fa;text-decoration:none;border:1px solid #374151;border-radius:6px;padding:4px 10px;background:#1f2937;" onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#1f2937'">📥 Télécharger le modèle Excel</a>
+<!-- MAIN -->
+<div id="main-content">
+
+    <!-- SIDEBAR LEFT -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h1>📍 Contact Map</h1>
+            <p id="sidebar-subtitle">Chargement...</p>
         </div>
 
-        <div class="region-filter">
-            <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.875rem;">Filtres</label>
-            
-            <!-- Bouton Réinitialiser la vue -->
-            <button class="reset-view-btn" onclick="resetMapView()">🔄 Réinitialiser la vue</button>
-            
+        <div class="sidebar-section">
+            <button class="btn-add" onclick="openModal()">+ Nouveau contact</button>
+        </div>
+
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">Import / Export</p>
+            <div class="import-zone">
+                <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 8px;">Glisser un fichier ou cliquer</p>
+                <input type="file" id="excel-import" accept=".xlsx,.xls,.csv" onchange="importExcel(this)">
+            </div>
+            <a href="/api/template" download="modele_contacts.xlsx"
+               style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.75rem;
+                      color:#60a5fa;text-decoration:none;justify-content:center;padding:6px;
+                      border:1px solid var(--border);border-radius:8px;background:var(--card-bg);
+                      transition:all 0.2s;"
+               onmouseover="this.style.borderColor='#60a5fa'" onmouseout="this.style.borderColor='var(--border)'">
+                📥 Télécharger le modèle Excel
+            </a>
+            <button class="btn-ghost" style="margin-top:8px;font-size:0.75rem;padding:7px;"
+                    onclick="exportContacts()">
+                📤 Exporter les contacts (.xlsx)
+            </button>
+        </div>
+
+        <div class="sidebar-section" style="flex:1;">
+            <p class="sidebar-section-title">Filtres</p>
             <div class="filter-group">
                 <label>Par Région</label>
                 <select id="region-select" onchange="filterData()">
@@ -455,849 +553,919 @@
                     <option value="both">Régional & National</option>
                 </select>
             </div>
+            <button class="btn-ghost" style="font-size:0.75rem;padding:7px;margin-top:4px;"
+                    onclick="resetFilters()">🔄 Réinitialiser les filtres</button>
         </div>
 
-    </div>
-
-        <div id="map"></div>
-
-        <div id="contact-list">
-            <div class="search-container" style="margin-bottom:12px;">
-                <div class="contact-stats">
-                    <div class="stat-card">
-                        <span class="stat-value" id="total-contacts">0</span>
-                        <span class="stat-label">Contacts</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="total-cities">0</span>
-                        <span class="stat-label">Villes</span>
-                    </div>
-                </div>
-                <div class="search-input-wrapper" style="margin-bottom: 10px;">
-                    <span style="position: absolute; left: 12px; color: var(--text-muted);">🔍</span>
-                    <input type="text" id="contact-search" placeholder="Rechercher un nom, ville, entreprise..." oninput="filterData()">
-                </div>
-                <button onclick="copyAllEmails()" style="background: var(--card-bg); color: var(--text-muted); font-size: 0.75rem; padding: 6px; border: 1px solid var(--border);">📋 Copier tous les emails</button>
-            </div>
-            <div id="contacts" style="flex:1; overflow-y:auto;"></div>
+        <div class="sidebar-section" id="legend-section" style="display:none;">
+            <p class="sidebar-section-title">Légende entreprises</p>
+            <div id="legend-items"></div>
         </div>
     </div>
-    
-    <div id="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Nouveau Contact</h2>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- CONTACT LIST RIGHT -->
+    <div id="contact-list">
+        <div class="contact-list-header">
+            <div class="contact-stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="total-contacts">0</span>
+                    <span class="stat-label">Contacts</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="total-cities">0</span>
+                    <span class="stat-label">Villes</span>
+                </div>
             </div>
-            <div id="add-contact-form">
-                <input type="hidden" id="edit-id">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="form-group">
-                        <label>Prénom *</label>
-                        <input type="text" id="first_name" placeholder="Jean" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nom</label>
-                        <input type="text" id="last_name" placeholder="Dupont">
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="email" placeholder="jean@exemple.com">
-                    </div>
-                    <div class="form-group">
-                        <label>Téléphone</label>
-                        <input type="tel" id="phone" placeholder="06 00 00 00 00">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Ville *</label>
-                    <input type="text" id="city" placeholder="Paris, France" required>
-                </div>
-                <div class="form-group">
-                    <label>Région</label>
-                    <input type="text" id="region" placeholder="Déterminée automatiquement" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Entreprise</label>
-                    <input type="text" id="company" placeholder="ACME Inc.">
-                </div>
-                <div class="form-group">
-                    <label>Portée du contact</label>
-                    <div class="scope-type">
-                        <div class="scope-checkbox">
-                            <input type="checkbox" id="scope-regional" value="regional">
-                            <label for="scope-regional">Régional</label>
-                        </div>
-                        <div class="scope-checkbox">
-                            <input type="checkbox" id="scope-national" value="national">
-                            <label for="scope-national">National</label>
-                        </div>
-                    </div>
-                </div>
-                <button id="save-btn" onclick="saveContact()">Enregistrer le contact</button>
+            <div class="search-wrapper">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" id="contact-search" placeholder="Rechercher nom, ville, entreprise..."
+                       oninput="filterData()">
             </div>
+            <div class="sort-bar">
+                <button class="sort-btn active" id="sort-name" onclick="setSortMode('name')">A→Z Nom</button>
+                <button class="sort-btn" id="sort-company" onclick="setSortMode('company')">Entreprise</button>
+                <button class="sort-btn" id="sort-city" onclick="setSortMode('city')">Ville</button>
+            </div>
+            <button class="btn-ghost" style="font-size:0.72rem;padding:6px;" onclick="copyFilteredEmails()">
+                📋 Copier emails (filtrés)
+            </button>
+        </div>
+        <div id="contacts-scroll">
+            <div id="contacts"></div>
         </div>
     </div>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const socket = io();
-        const map = L.map('map', { zoomControl: false }).setView([46.2276, 2.2137], 6);
-        L.control.zoom({ position: 'topright' }).addTo(map);
+</div>
 
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://osmfr.org">OpenStreetMap France</a>',
-            maxZoom: 20
+<!-- MODAL -->
+<div id="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title" style="font-size:1.1rem;">Nouveau Contact</h2>
+            <button class="close-modal" onclick="closeModal()">✕</button>
+        </div>
+        <input type="hidden" id="edit-id">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Prénom *</label>
+                <input type="text" id="first_name" placeholder="Jean">
+            </div>
+            <div class="form-group">
+                <label>Nom</label>
+                <input type="text" id="last_name" placeholder="Dupont">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="jean@exemple.com">
+            </div>
+            <div class="form-group">
+                <label>Téléphone</label>
+                <input type="tel" id="phone" placeholder="06 00 00 00 00">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Ville *</label>
+            <input type="text" id="city" placeholder="Paris" oninput="debounceCityLookup(this.value)">
+        </div>
+        <div class="form-group">
+            <label>Région <span style="font-size:0.7rem;color:var(--text-muted);">(auto)</span></label>
+            <input type="text" id="region" placeholder="Déterminée automatiquement" readonly
+                   style="opacity:0.7;cursor:not-allowed;">
+        </div>
+        <div class="form-group">
+            <label>Entreprise</label>
+            <input type="text" id="company" placeholder="ACME Inc." list="company-datalist">
+            <datalist id="company-datalist"></datalist>
+        </div>
+        <div class="form-group">
+            <label>Portée du contact</label>
+            <div class="scope-type">
+                <div class="scope-checkbox">
+                    <input type="checkbox" id="scope-regional">
+                    <label for="scope-regional">Régional</label>
+                </div>
+                <div class="scope-checkbox">
+                    <input type="checkbox" id="scope-national">
+                    <label for="scope-national">National</label>
+                </div>
+            </div>
+        </div>
+        <button id="save-btn" onclick="saveContact()">Enregistrer le contact</button>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const socket = io();
+const map = L.map('map', { zoomControl: false }).setView([46.2276, 2.2137], 6);
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 20
+}).addTo(map);
+
+let contacts = [];
+let markers = {};
+let currentRegion = 'all', currentCompany = 'all', currentScope = 'all';
+let regionLayer, deptLayer, currentDeptDisplay;
+let companyColors = {};
+let sortMode = 'name';
+let currentFiltered = [];
+let cityLookupTimer = null;
+
+const COLORS = ['#6366f1','#ef4444','#10b981','#f59e0b','#3b82f6',
+                '#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316',
+                '#14b8a6','#e879f9','#fb923c','#a3e635','#38bdf8'];
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg, type = 'success', duration = 3500) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => {
+        t.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => t.remove(), 300);
+    }, duration);
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+async function login() {
+    const btn = document.getElementById('login-btn');
+    const error = document.getElementById('login-error');
+    btn.textContent = 'Connexion...';
+    btn.disabled = true;
+    error.style.display = 'none';
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: document.getElementById('login-username').value,
+                password: document.getElementById('login-password').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('main-content').classList.add('visible');
+            await loadContacts();
+            setTimeout(() => map.invalidateSize(), 100);
+        } else {
+            error.textContent = data.message || 'Identifiants incorrects';
+            error.style.display = 'block';
+            btn.textContent = 'Se connecter';
+            btn.disabled = false;
+        }
+    } catch {
+        error.textContent = 'Erreur de connexion au serveur';
+        error.style.display = 'block';
+        btn.textContent = 'Se connecter';
+        btn.disabled = false;
+    }
+}
+
+// ══════════════════════════════════════════════
+// LOAD / REFRESH
+// ══════════════════════════════════════════════
+async function loadContacts() {
+    try {
+        const res = await fetch('/api/contacts');
+        contacts = await res.json();
+        refreshUI();
+        await init();
+    } catch (e) {
+        toast('Erreur lors du chargement des contacts', 'error');
+    }
+}
+
+function refreshUI() {
+    updateFilters();
+    updateLegend();
+    filterData();
+    updateCompanyDatalist();
+    document.getElementById('sidebar-subtitle').textContent =
+        `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`;
+}
+
+socket.on('contactsUpdated', (newContacts) => {
+    contacts = newContacts;
+    refreshUI();
+});
+
+// ══════════════════════════════════════════════
+// COLORS
+// ══════════════════════════════════════════════
+function getCompanyColor(company) {
+    if (!company) return '#64748b';
+    if (!companyColors[company]) {
+        const idx = Object.keys(companyColors).length % COLORS.length;
+        companyColors[company] = COLORS[idx];
+    }
+    return companyColors[company];
+}
+
+function updateLegend() {
+    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
+    const section = document.getElementById('legend-section');
+    const items = document.getElementById('legend-items');
+    if (companies.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    items.innerHTML = companies.map(c => `
+        <div class="legend-item" onclick="setCompanyFilter('${c.replace(/'/g, "\\'")}')" style="cursor:pointer;border-radius:6px;padding:3px 4px;transition:background 0.15s;" onmouseover="this.style.background='var(--card-bg)'" onmouseout="this.style.background='transparent'">
+            <div class="legend-dot" style="background:${getCompanyColor(c)}"></div>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c}</span>
+        </div>
+    `).join('');
+}
+
+function setCompanyFilter(company) {
+    currentCompany = company;
+    document.getElementById('company-select').value = company;
+    filterData();
+}
+
+function updateCompanyDatalist() {
+    const dl = document.getElementById('company-datalist');
+    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
+    dl.innerHTML = companies.map(c => `<option value="${c}">`).join('');
+}
+
+// ══════════════════════════════════════════════
+// SORT
+// ══════════════════════════════════════════════
+function setSortMode(mode) {
+    sortMode = mode;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`sort-${mode}`).classList.add('active');
+    filterData();
+}
+
+function sortContacts(arr) {
+    return [...arr].sort((a, b) => {
+        if (sortMode === 'name') {
+            const na = (a.firstName + ' ' + (a.lastName || '')).toLowerCase();
+            const nb = (b.firstName + ' ' + (b.lastName || '')).toLowerCase();
+            return na.localeCompare(nb, 'fr');
+        }
+        if (sortMode === 'company') {
+            return (a.company || '').localeCompare(b.company || '', 'fr');
+        }
+        if (sortMode === 'city') {
+            return (a.city || '').localeCompare(b.city || '', 'fr');
+        }
+        return 0;
+    });
+}
+
+// ══════════════════════════════════════════════
+// FILTERS
+// ══════════════════════════════════════════════
+function updateFilters() {
+    const rs = document.getElementById('region-select');
+    const cs = document.getElementById('company-select');
+    const regions   = [...new Set(contacts.map(c => c.region).filter(Boolean))].sort();
+    const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
+    rs.innerHTML = '<option value="all">Toutes les régions</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join('');
+    cs.innerHTML = '<option value="all">Toutes les entreprises</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
+    rs.value = currentRegion;
+    cs.value = currentCompany;
+}
+
+function resetFilters() {
+    currentRegion = 'all'; currentCompany = 'all'; currentScope = 'all';
+    document.getElementById('region-select').value = 'all';
+    document.getElementById('company-select').value = 'all';
+    document.getElementById('scope-select').value = 'all';
+    document.getElementById('contact-search').value = '';
+    map.setView([46.2276, 2.2137], 6);
+    if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
+    if (regionLayer) regionLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1 }));
+    filterData();
+    toast('Filtres réinitialisés');
+}
+
+function filterData() {
+    currentRegion  = document.getElementById('region-select').value;
+    currentCompany = document.getElementById('company-select').value;
+    currentScope   = document.getElementById('scope-select').value;
+    const search   = (document.getElementById('contact-search')?.value || '').toLowerCase().trim();
+
+    // Clear markers
+    Object.values(markers).forEach(m => map.removeLayer(m));
+    markers = {};
+
+    let filtered = contacts.filter(c => {
+        if (currentRegion  !== 'all' && c.region  !== currentRegion)  return false;
+        if (currentCompany !== 'all' && c.company !== currentCompany) return false;
+        if (search) {
+            const haystack = [c.firstName, c.lastName, c.city, c.company, c.email, c.region]
+                .map(v => (v || '').toLowerCase()).join(' ');
+            if (!haystack.includes(search)) return false;
+        }
+        if (currentScope === 'regional') return c.scopeRegional && !c.scopeNational;
+        if (currentScope === 'national') return c.scopeNational && !c.scopeRegional;
+        if (currentScope === 'both')     return c.scopeRegional && c.scopeNational;
+        return true;
+    });
+
+    filtered = sortContacts(filtered);
+    currentFiltered = filtered;
+
+    renderContacts(filtered);
+    filtered.forEach(addMarkerToMap);
+
+    if (regionLayer) {
+        regionLayer.eachLayer(l => l.setStyle({
+            fillOpacity: l.feature.properties.nom === currentRegion ? 0.35 : 0.08
+        }));
+    }
+
+    const totalEl = document.getElementById('total-contacts');
+    const cityEl  = document.getElementById('total-cities');
+    if (totalEl) totalEl.textContent = filtered.length;
+    if (cityEl)  cityEl.textContent  = new Set(filtered.map(c => c.city).filter(Boolean)).size;
+}
+
+// ══════════════════════════════════════════════
+// REGIONS & DEPTS
+// ══════════════════════════════════════════════
+async function init() {
+    await Promise.all([loadRegions(), loadDepts()]);
+    initBackToTopBtn();
+}
+
+async function loadRegions() {
+    try {
+        const res = await fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions-version-simplifiee.geojson');
+        const data = await res.json();
+        regionLayer = L.geoJSON(data, {
+            style: () => ({ fillColor: '#6366f1', weight: 1.5, opacity: 0.7, color: '#334155', fillOpacity: 0.08 }),
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    mouseover: e => { if (map.getZoom() < 8) e.target.setStyle({ fillOpacity: 0.25, weight: 2 }); },
+                    mouseout:  e => {
+                        if (map.getZoom() < 8 && feature.properties.nom !== currentRegion)
+                            e.target.setStyle({ fillOpacity: 0.08, weight: 1.5 });
+                    },
+                    click: e => {
+                        currentRegion = feature.properties.nom;
+                        document.getElementById('region-select').value = currentRegion;
+                        map.fitBounds(e.target.getBounds(), { padding: [20, 20] });
+                        filterData();
+                        showDepts(feature.properties.code);
+                    }
+                });
+                layer.bindTooltip(feature.properties.nom, { permanent: false, sticky: true, className: 'region-tooltip' });
+            }
         }).addTo(map);
+    } catch (e) { console.error('Regions load failed:', e); }
+}
 
-        let contacts = [];
-        let markers = {};
-        let currentRegion = 'all';
-        let currentCompany = 'all';
-        let currentScope = 'all';
-        let regionLayer, deptLayer, currentDeptDisplay;
-        let companyColors = {};
+async function loadDepts() {
+    try {
+        const res = await fetch('departements.geojson');
+        const data = await res.json();
+        deptLayer = L.geoJSON(data);
+    } catch (e) { console.error('Depts load failed:', e); }
+}
 
-        async function login() {
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
-            const error = document.getElementById('login-error');
+const REGION_DEPTS = {
+    '11':['75','77','78','91','92','93','94','95'],
+    '24':['18','28','36','37','41','45'],
+    '27':['21','25','39','58','70','71','89','90'],
+    '28':['14','27','50','61','76'],
+    '32':['02','59','60','62','80'],
+    '44':['08','10','51','52','54','55','57','67','68','88'],
+    '52':['44','49','53','72','85'],
+    '53':['22','29','35','56'],
+    '75':['16','17','19','23','24','33','40','47','64','79','86','87'],
+    '76':['09','11','12','30','31','32','34','46','48','65','66','81','82'],
+    '84':['01','03','07','15','26','38','42','43','63','69','73','74'],
+    '93':['04','05','06','13','83','84'],
+    '94':['2A','2B']
+};
 
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('login-overlay').style.display = 'none';
-                    document.getElementById('main-content').classList.add('visible');
-                    await loadContacts();
-                    map.invalidateSize();
-                } else {
-                    error.innerText = data.message;
-                    error.style.display = 'block';
-                }
-            } catch (err) {
-                error.innerText = "Erreur de connexion";
-                error.style.display = 'block';
-            }
+function showDepts(regionCode) {
+    if (!deptLayer) return;
+    if (currentDeptDisplay) map.removeLayer(currentDeptDisplay);
+    const depts = REGION_DEPTS[regionCode] || [];
+    const features = deptLayer.toGeoJSON().features.filter(f => depts.includes(f.properties.code));
+    if (!features.length) return;
+    currentDeptDisplay = L.geoJSON(features, {
+        style: { fillColor: '#10b981', weight: 1.5, color: '#34d399', fillOpacity: 0.15 },
+        onEachFeature: (feature, layer) => {
+            layer.bindTooltip(feature.properties.nom, { sticky: true });
+            layer.on('click', e => { L.DomEvent.stopPropagation(e); map.fitBounds(e.target.getBounds()); });
         }
+    }).addTo(map);
+}
 
-        async function loadContacts() {
-            const res = await fetch('/api/contacts');
-            contacts = await res.json();
-            refreshUI();
+async function findRegion(lat, lon) {
+    if (!regionLayer) return '';
+    let found = '';
+    regionLayer.eachLayer(layer => {
+        if (found) return;
+        if (layer.getBounds().contains([lat, lon])) found = layer.feature.properties.nom;
+    });
+    return found;
+}
+
+// ══════════════════════════════════════════════
+// GEOCODE
+// ══════════════════════════════════════════════
+async function geocode(city) {
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
+        const data = await res.json();
+        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
+    } catch (e) { console.error('Geocode error:', e); }
+    return null;
+}
+
+let cityDebounceTimer = null;
+function debounceCityLookup(val) {
+    clearTimeout(cityDebounceTimer);
+    if (!val || val.length < 3) return;
+    cityDebounceTimer = setTimeout(async () => {
+        const regionInput = document.getElementById('region');
+        regionInput.value = '⏳ Recherche...';
+        const coords = await geocode(val);
+        if (coords) {
+            const region = await findRegion(coords.lat, coords.lon);
+            regionInput.value = region || '';
+        } else {
+            regionInput.value = '';
         }
+    }, 700);
+}
 
-        function refreshUI() {
-            updateFilters();
-            filterData();
+// ══════════════════════════════════════════════
+// MARKERS
+// ══════════════════════════════════════════════
+function addMarkerToMap(contact) {
+    if (contact.lat == null || contact.lon == null) return;
+    const color = getCompanyColor(contact.company);
+    const icon = L.divIcon({
+        className: '',
+        html: `<div style="
+            background:${color};width:13px;height:13px;border-radius:50%;
+            border:2.5px solid rgba(255,255,255,0.9);
+            box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px ${color}33;
+            transition:transform 0.15s;cursor:pointer;
+        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>`,
+        iconSize: [13, 13],
+        iconAnchor: [6, 6]
+    });
+
+    let scopeBadges = '';
+    if (contact.scopeRegional) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(34,197,94,0.15);color:#4ade80;">Régional</span>';
+    if (contact.scopeNational) scopeBadges += '<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;background:rgba(99,102,241,0.15);color:#818cf8;">National</span>';
+
+    const marker = L.marker([contact.lat, contact.lon], { icon }).addTo(map);
+    marker.bindPopup(`
+        <div style="font-family:'Inter',sans-serif;min-width:190px;max-width:240px;">
+            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">${contact.firstName} ${contact.lastName || ''}${scopeBadges}</div>
+            <div style="color:${color};font-weight:600;font-size:0.78rem;margin-bottom:8px;">${contact.company || '—'}</div>
+            <hr style="border:0;border-top:1px solid #334155;margin:0 0 8px;">
+            ${contact.email  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📧 <a href="mailto:${contact.email}" style="color:#60a5fa;text-decoration:none;">${contact.email}</a></div>` : ''}
+            ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
+            <div style="font-size:0.8rem;color:#94a3b8;">📍 ${contact.city}${contact.region ? ` · ${contact.region}` : ''}</div>
+            <div style="margin-top:10px;display:flex;gap:6px;">
+                <button onclick="editContact('${contact.id}');map.closePopup();" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;">Modifier</button>
+                <button onclick="deleteContact('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;">Supprimer</button>
+            </div>
+        </div>
+    `);
+
+    // Highlight contact card on marker click
+    marker.on('click', () => {
+        document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('highlighted'));
+        const card = document.querySelector(`.contact-item[data-id="${contact.id}"]`);
+        if (card) {
+            card.classList.add('highlighted');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+    });
 
-        socket.on('contactsUpdated', (newContacts) => {
-            contacts = newContacts;
-            refreshUI();
+    markers[contact.id] = marker;
+}
+
+// ══════════════════════════════════════════════
+// RENDER CONTACTS LIST
+// ══════════════════════════════════════════════
+function renderContacts(filtered) {
+    const container = document.getElementById('contacts');
+    container.innerHTML = '';
+
+    if (!filtered || filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M17 20h5v-2a4 4 0 00-5.196-3.793M9 20H4v-2a4 4 0 015.196-3.793M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <p>Aucun contact trouvé</p>
+            </div>`;
+        return;
+    }
+
+    filtered.forEach(contact => {
+        const color = getCompanyColor(contact.company);
+        let scopeBadges = '';
+        if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
+        if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
+        const noLoc = contact.lat == null ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
+
+        const div = document.createElement('div');
+        div.className = 'contact-item';
+        div.dataset.id = contact.id;
+        div.style.setProperty('--company-color', color);
+        div.innerHTML = `
+            <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}</h3>
+            <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
+            ${contact.email ? `<p title="${contact.email}">📧 ${contact.email}</p>` : ''}
+            ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
+            <p>📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}</p>
+            <div class="contact-actions">
+                <button class="btn-sm btn-success" onclick="editContact('${contact.id}')">✏️ Modifier</button>
+                <button class="btn-sm btn-danger" onclick="deleteContact('${contact.id}')">🗑 Supprimer</button>
+                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="focusOnMap('${contact.id}')">🗺</button>` : ''}
+            </div>
+        `;
+
+        // Click card → open popup on map
+        div.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') return;
+            if (contact.lat != null) focusOnMap(contact.id);
         });
 
-        const colors = [
-            '#6366f1', '#ef4444', '#10b981', '#f59e0b', '#3b82f6', 
-            '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'
-        ];
+        container.appendChild(div);
+    });
+}
 
-        function getCompanyColor(company) {
-            if (!company) return '#6366f1';
-            if (!companyColors[company]) {
-                const colorIndex = Object.keys(companyColors).length % colors.length;
-                companyColors[company] = colors[colorIndex];
+function focusOnMap(id) {
+    const marker = markers[id];
+    if (!marker) return;
+    map.setView(marker.getLatLng(), 12, { animate: true });
+    setTimeout(() => marker.openPopup(), 300);
+    // Highlight card
+    document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('highlighted'));
+    const card = document.querySelector(`.contact-item[data-id="${id}"]`);
+    if (card) card.classList.add('highlighted');
+}
+
+// ══════════════════════════════════════════════
+// SAVE / EDIT / DELETE
+// ══════════════════════════════════════════════
+async function saveContact() {
+    const btn = document.getElementById('save-btn');
+    const editId = document.getElementById('edit-id').value;
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName  = document.getElementById('last_name').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    const phone     = document.getElementById('phone').value.trim();
+    const city      = document.getElementById('city').value.trim();
+    const company   = document.getElementById('company').value.trim();
+    const scopeRegional = document.getElementById('scope-regional').checked;
+    const scopeNational = document.getElementById('scope-national').checked;
+
+    if (!firstName || !city) {
+        toast('Le prénom et la ville sont obligatoires', 'error');
+        return;
+    }
+
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Localisation...';
+    btn.disabled = true;
+
+    try {
+        const coords = await geocode(city);
+        if (!coords) throw new Error(`Ville "${city}" introuvable`);
+
+        const region = await findRegion(coords.lat, coords.lon);
+        const contactData = {
+            id: editId || Date.now().toString(),
+            firstName, lastName, email, phone, city, region, company,
+            scopeRegional, scopeNational,
+            lat: coords.lat, lon: coords.lon, fullName: coords.fullName
+        };
+
+        if (editId) {
+            const idx = contacts.findIndex(c => c.id === editId);
+            if (idx >= 0) contacts[idx] = contactData;
+        } else {
+            contacts.push(contactData);
+        }
+
+        await saveToServer();
+        closeModal();
+        refreshUI();
+        toast(editId ? 'Contact mis à jour ✓' : 'Contact ajouté ✓');
+        if (coords) setTimeout(() => focusOnMap(contactData.id), 300);
+    } catch (err) {
+        toast(err.message, 'error');
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+function editContact(id) {
+    const c = contacts.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('edit-id').value       = c.id;
+    document.getElementById('first_name').value    = c.firstName || '';
+    document.getElementById('last_name').value     = c.lastName  || '';
+    document.getElementById('email').value         = c.email     || '';
+    document.getElementById('phone').value         = c.phone     || '';
+    document.getElementById('city').value          = c.city      || '';
+    document.getElementById('region').value        = c.region    || '';
+    document.getElementById('company').value       = c.company   || '';
+    document.getElementById('scope-regional').checked = !!c.scopeRegional;
+    document.getElementById('scope-national').checked = !!c.scopeNational;
+    document.getElementById('modal-title').textContent = 'Modifier le contact';
+    document.getElementById('save-btn').textContent    = 'Mettre à jour';
+    openModal();
+}
+
+async function deleteContact(id) {
+    const c = contacts.find(x => x.id === id);
+    if (!c) return;
+    if (!confirm(`Supprimer ${c.firstName} ${c.lastName || ''} ?`)) return;
+    contacts = contacts.filter(x => x.id !== id);
+    await saveToServer();
+    refreshUI();
+    toast('Contact supprimé');
+}
+
+async function saveToServer() {
+    const res = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contacts)
+    });
+    if (!res.ok) throw new Error('Erreur serveur lors de la sauvegarde');
+}
+
+// ══════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════
+function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    resetForm();
+}
+
+function resetForm() {
+    ['edit-id','first_name','last_name','email','phone','city','region','company'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('scope-regional').checked = false;
+    document.getElementById('scope-national').checked = false;
+    document.getElementById('modal-title').textContent  = 'Nouveau Contact';
+    document.getElementById('save-btn').textContent     = 'Enregistrer le contact';
+    document.getElementById('save-btn').disabled        = false;
+}
+
+// Click outside modal to close
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// ══════════════════════════════════════════════
+// EMAILS
+// ══════════════════════════════════════════════
+function copyFilteredEmails() {
+    const emails = currentFiltered.map(c => c.email).filter(Boolean);
+    if (!emails.length) { toast('Aucun email dans la sélection actuelle', 'warning'); return; }
+    navigator.clipboard.writeText(emails.join('; ')).then(() => {
+        toast(`${emails.length} email(s) copié(s) ✓`);
+    });
+}
+
+// ══════════════════════════════════════════════
+// EXPORT EXCEL
+// ══════════════════════════════════════════════
+function exportContacts() {
+    if (!contacts.length) { toast('Aucun contact à exporter', 'warning'); return; }
+    const rows = contacts.map(c => ({
+        Region: c.region || '',
+        delivery_zone: c.deliveryZone || '',
+        city: c.city || '',
+        Company: c.company || '',
+        Scope: [c.scopeRegional ? 'Régional' : '', c.scopeNational ? 'National' : ''].filter(Boolean).join(' , '),
+        first_name: c.firstName || '',
+        last_name: c.lastName || '',
+        phone: c.phone || '',
+        email: c.email || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+    XLSX.writeFile(wb, `contacts_azimut_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast(`${contacts.length} contacts exportés ✓`);
+}
+
+// ══════════════════════════════════════════════
+// IMPORT EXCEL
+// ══════════════════════════════════════════════
+function parseScope(s) {
+    if (!s) return { scopeRegional: false, scopeNational: false };
+    const l = s.toString().toLowerCase();
+    return {
+        scopeRegional: l.includes('régional') || l.includes('regional'),
+        scopeNational: l.includes('national')
+    };
+}
+
+function showImportProgress(msg, current, total) {
+    let el = document.getElementById('import-progress-container');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'import-progress-container';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        el.innerHTML = `
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px;min-width:380px;text-align:center;">
+                <div style="font-size:1rem;font-weight:600;color:#f1f5f9;margin-bottom:6px;" id="imp-msg"></div>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:16px;" id="imp-count"></div>
+                <div style="background:#334155;border-radius:999px;height:8px;overflow:hidden;">
+                    <div id="imp-bar" style="background:linear-gradient(90deg,#6366f1,#8b5cf6);height:100%;width:0%;transition:width 0.3s ease;border-radius:999px;"></div>
+                </div>
+            </div>`;
+        document.body.appendChild(el);
+    }
+    const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+    document.getElementById('imp-bar').style.width = pct + '%';
+    document.getElementById('imp-msg').textContent   = msg;
+    document.getElementById('imp-count').textContent = `${current} / ${total}`;
+}
+
+function hideImportProgress() {
+    const el = document.getElementById('import-progress-container');
+    if (el) el.remove();
+}
+
+function showImportChoiceDialog(existingCount, newCount) {
+    return new Promise(resolve => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+        ov.innerHTML = `
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:18px;padding:32px;max-width:420px;width:90%;font-family:'Inter',sans-serif;animation:modalIn 0.2s ease;">
+                <div style="font-size:1.5rem;margin-bottom:8px;">📂</div>
+                <div style="font-size:1rem;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Import Excel</div>
+                <p style="color:#94a3b8;font-size:0.85rem;margin:0 0 20px;line-height:1.5;">
+                    Base actuelle : <strong style="color:#f1f5f9">${existingCount} contact(s)</strong><br>
+                    Fichier : <strong style="color:#f1f5f9">${newCount} ligne(s)</strong><br>
+                    Que souhaitez-vous faire ?
+                </p>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <button id="bi-replace" style="background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:10px;padding:12px 16px;cursor:pointer;font-size:0.85rem;font-weight:600;text-align:left;font-family:'Inter',sans-serif;">
+                        🗑️ Remplacer — Supprimer les anciens et importer
+                    </button>
+                    <button id="bi-merge" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1d4ed8;border-radius:10px;padding:12px 16px;cursor:pointer;font-size:0.85rem;font-weight:600;text-align:left;font-family:'Inter',sans-serif;">
+                        🔄 Fusionner — Mettre à jour les existants + nouveaux
+                    </button>
+                    <button id="bi-cancel" style="background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:0.82rem;font-family:'Inter',sans-serif;">
+                        Annuler
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(ov);
+        ov.querySelector('#bi-replace').onclick = () => { ov.remove(); resolve('replace'); };
+        ov.querySelector('#bi-merge').onclick   = () => { ov.remove(); resolve('merge');   };
+        ov.querySelector('#bi-cancel').onclick  = () => { ov.remove(); resolve(null);      };
+    });
+}
+
+async function importExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const contactCols = ['city', 'first_name', 'ville', 'prenom'];
+            let sheetName = wb.SheetNames[0];
+            for (const name of wb.SheetNames) {
+                const rows0 = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
+                if (rows0.length > 0) {
+                    const headers = (rows0[0] || []).map(h => String(h || '').toLowerCase().trim());
+                    if (contactCols.some(c => headers.includes(c))) { sheetName = name; break; }
+                }
             }
-            return companyColors[company];
-        }
 
-        // Fonction pour réinitialiser la vue de la carte
-        // ── Bouton retour en haut : scroll sidebar + visibilité ──
-        function scrollSidebarToTop() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.scrollTo({ top: 0, behavior: 'smooth' });
-            const contactList = document.getElementById('contact-list');
-            if (contactList) contactList.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+            if (!rows.length) { toast('Fichier vide ou format incorrect', 'error'); return; }
 
-        function initBackToTopBtn() {
-            const sidebar = document.getElementById('sidebar');
-            const contactList = document.getElementById('contact-list');
-            const btn = document.getElementById('back-top-btn');
-            if (!btn) return;
-
-            const showBtn = () => {
-                const scrolled = (sidebar && sidebar.scrollTop > 120) ||
-                                 (contactList && contactList.scrollTop > 120);
-                btn.style.display = scrolled ? 'flex' : 'none';
-            };
-            if (sidebar) sidebar.addEventListener('scroll', showBtn);
-            if (contactList) contactList.addEventListener('scroll', showBtn);
-            window.addEventListener('scroll', showBtn);
-        }
-
-        function resetMapView() {
-            map.setView([46.2276, 2.2137], 6);
-            currentRegion = 'all';
-            document.getElementById('region-select').value = 'all';
-            
-            // Supprimer l'affichage des départements
-            if (currentDeptDisplay) {
-                map.removeLayer(currentDeptDisplay);
-                currentDeptDisplay = null;
+            let mergeMode = 'replace';
+            if (contacts.length > 0) {
+                const choice = await showImportChoiceDialog(contacts.length, rows.length);
+                if (choice === null) return;
+                mergeMode = choice;
             }
-            
-            // Réinitialiser les styles des régions
-            if (regionLayer) {
-                regionLayer.eachLayer(l => {
-                    l.setStyle({ fillOpacity: 0.1 });
-                });
-            }
-            
-            filterData();
-        }
 
-        async function init() {
-            updateFilters();
-            filterData();
-            await loadRegions();
-            await loadDepts();
-            initBackToTopBtn();
-        }
+            let added = 0, updated = 0, skipped = 0;
+            if (mergeMode === 'replace') contacts = [];
 
-        async function loadRegions() {
-            try {
-                const res = await fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions-version-simplifiee.geojson');
-                const data = await res.json();
-                
-                regionLayer = L.geoJSON(data, {
-                    style: (feature) => ({
-                        fillColor: '#6366f1',
-                        weight: 2,
-                        opacity: 1,
-                        color: '#475569',
-                        fillOpacity: 0.1
-                    }),
-                    onEachFeature: (feature, layer) => {
-                        layer.on({
-                            mouseover: (e) => {
-                                if (map.getZoom() < 8) e.target.setStyle({ fillOpacity: 0.4 });
-                            },
-                            mouseout: (e) => {
-                                if (map.getZoom() < 8 && e.target.feature.properties.nom !== currentRegion) {
-                                    e.target.setStyle({ fillOpacity: 0.1 });
-                                }
-                            },
-                            click: (e) => {
-                                currentRegion = feature.properties.nom;
-                                document.getElementById('region-select').value = currentRegion;
-                                map.fitBounds(e.target.getBounds());
-                                filterData();
-                                showDepts(feature.properties.code);
-                            }
-                        });
+            showImportProgress('Démarrage...', 0, rows.length);
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const city      = (row.city      || row.City      || row.Ville    || '').toString().trim();
+                const firstName = (row.first_name || row['First Name'] || row.Prenom || '').toString().trim();
+                const lastName  = (row.last_name  || row['Last Name']  || row.Nom   || '').toString().trim();
+                const company   = (row.Company    || row.company   || row.Entreprise || '').toString().trim();
+                const email     = (row.email      || row.Email     || '').toString().trim();
+                const phone     = (row.phone      || row.Phone     || row.Telephone  || '').toString().trim();
+                const regionFF  = (row.Region     || row.region    || '').toString().trim();
+                const deliveryZone = (row.delivery_zone || '').toString().trim();
+                const { scopeRegional, scopeNational } = parseScope(row.Scope || row.scope || '');
+
+                if (!firstName && !city) { skipped++; showImportProgress('Import...', i+1, rows.length); continue; }
+
+                showImportProgress(`📍 ${city || firstName}...`, i+1, rows.length);
+
+                let lat = null, lon = null, fullName = '', region = regionFF;
+                if (city) {
+                    const coords = await geocode(city);
+                    if (coords) {
+                        lat = coords.lat; lon = coords.lon; fullName = coords.fullName;
+                        region = await findRegion(lat, lon) || regionFF;
+                        await new Promise(r => setTimeout(r, 1100));
                     }
-                }).addTo(map);
-            } catch (err) {
-                console.error('Failed to load regions:', err);
-            }
-        }
-
-        async function loadDepts() {
-            try {
-                const res = await fetch('departements.geojson');
-                const data = await res.json();
-                deptLayer = L.geoJSON(data);
-            } catch (err) {
-                console.error('Failed to load depts:', err);
-            }
-        }
-
-        function showDepts(regionCode) {
-            if (!deptLayer) return;
-            if (currentDeptDisplay) map.removeLayer(currentDeptDisplay);
-
-            const regionToDepts = {
-                '11': ['75','77','78','91','92','93','94','95'],
-                '24': ['18','28','36','37','41','45'],
-                '27': ['21','25','39','58','70','71','89','90'],
-                '28': ['14','27','50','61','76'],
-                '32': ['02','59','60','62','80'],
-                '44': ['08','10','51','52','54','55','57','67','68','88'],
-                '52': ['44','49','53','72','85'],
-                '53': ['22','29','35','56'],
-                '75': ['16','17','19','23','24','33','40','47','64','79','86','87'],
-                '76': ['09','11','12','30','31','32','34','46','48','65','66','81','82'],
-                '84': ['01','03','07','15','26','38','42','43','63','69','73','74'],
-                '93': ['04','05','06','13','83','84'],
-                '94': ['2A','2B']
-            };
-
-            const targetDepts = regionToDepts[regionCode] || [];
-            const filteredFeatures = deptLayer.toGeoJSON().features.filter(f => targetDepts.includes(f.properties.code));
-            
-            // CORRECTION: Changer la couleur de bordure de blanc (#fff) à une couleur visible (#22c55e)
-            currentDeptDisplay = L.geoJSON(filteredFeatures, {
-                style: { 
-                    fillColor: '#10b981', 
-                    weight: 2, 
-                    opacity: 1, 
-                    color: '#22c55e',  // Changé de '#fff' à '#22c55e' (vert visible)
-                    fillOpacity: 0.2 
-                },
-                onEachFeature: (feature, layer) => {
-                    layer.bindTooltip(feature.properties.nom);
-                    layer.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        map.fitBounds(e.target.getBounds());
-                    });
                 }
-            }).addTo(map);
-        }
 
-        function updateFilters() {
-            const regionSelect = document.getElementById('region-select');
-            const companySelect = document.getElementById('company-select');
-            
-            const regions = [...new Set(contacts.map(c => c.region))].filter(Boolean).sort();
-            const companies = [...new Set(contacts.map(c => c.company))].filter(Boolean).sort();
-            
-            regionSelect.innerHTML = '<option value="all">Toutes les régions</option>';
-            regions.forEach(r => regionSelect.add(new Option(r, r)));
-            
-            companySelect.innerHTML = '<option value="all">Toutes les entreprises</option>';
-            companies.forEach(c => companySelect.add(new Option(c, c)));
+                const nc = { firstName, lastName, email, phone, city, region, company, deliveryZone, scopeRegional, scopeNational, lat, lon, fullName };
 
-            regionSelect.value = currentRegion;
-            companySelect.value = currentCompany;
-        }
-
-        function filterData() {
-            currentRegion = document.getElementById('region-select').value;
-            currentCompany = document.getElementById('company-select').value;
-            currentScope = document.getElementById('scope-select').value;
-            const searchTerm = (document.getElementById('contact-search')?.value || '').toLowerCase();
-            
-            Object.values(markers).forEach(m => map.removeLayer(m));
-            markers = {};
-            
-            const filtered = contacts.filter(c => {
-                const matchRegion = currentRegion === 'all' || c.region === currentRegion;
-                const matchCompany = currentCompany === 'all' || c.company === currentCompany;
-                const matchSearch = !searchTerm || 
-                    (c.firstName + ' ' + (c.lastName || '')).toLowerCase().includes(searchTerm) ||
-                    (c.city || '').toLowerCase().includes(searchTerm) ||
-                    (c.company || '').toLowerCase().includes(searchTerm) ||
-                    (c.email || '').toLowerCase().includes(searchTerm);
-                
-                // Filtre par portée (scope)
-                let matchScope = true;
-                if (currentScope === 'regional') {
-                    matchScope = c.scopeRegional && !c.scopeNational;
-                } else if (currentScope === 'national') {
-                    matchScope = c.scopeNational && !c.scopeRegional;
-                } else if (currentScope === 'both') {
-                    matchScope = c.scopeRegional && c.scopeNational;
-                }
-                
-                return matchRegion && matchCompany && matchSearch && matchScope;
-            });
-
-            renderContacts(filtered);
-            filtered.forEach(addMarkerToMap);
-            
-            if (regionLayer) {
-                regionLayer.eachLayer(l => {
-                    l.setStyle({ fillOpacity: (l.feature.properties.nom === currentRegion ? 0.4 : 0.1) });
-                });
-            }
-
-            const totalContactsEl = document.getElementById('total-contacts');
-            const totalCitiesEl = document.getElementById('total-cities');
-            if (totalContactsEl) totalContactsEl.innerText = filtered.length;
-            if (totalCitiesEl) totalCitiesEl.innerText = new Set(filtered.map(c => c.city)).size;
-        }
-
-        async function findRegion(lat, lon) {
-            if (!regionLayer) return '';
-            let found = '';
-            regionLayer.eachLayer(layer => {
-                if (layer.getBounds().contains([lat, lon])) {
-                    found = layer.feature.properties.nom;
-                }
-            });
-            return found;
-        }
-
-        document.getElementById('city').addEventListener('blur', async (e) => {
-            const city = e.target.value;
-            if (!city) return;
-            
-            const regionInput = document.getElementById('region');
-            regionInput.placeholder = 'Recherche...';
-            
-            const coords = await geocode(city);
-            if (coords) {
-                const region = await findRegion(coords.lat, coords.lon);
-                regionInput.value = region;
-            }
-            regionInput.placeholder = 'Déterminée automatiquement';
-        });
-
-        async function geocode(city) {
-            try {
-                // countrycodes=fr pour limiter aux résultats français
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=3&accept-language=fr&countrycodes=fr`;
-                const response = await fetch(url, { headers: { 'User-Agent': 'ContactMapApp/1.0' } });
-                const data = await response.json();
-                if (data.length > 0) {
-                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
-                }
-            } catch (error) {
-                console.error('Geocoding error:', error);
-            }
-            return null;
-        }
-
-        async function saveContact() {
-            const saveBtn = document.getElementById('save-btn');
-            const originalText = saveBtn.innerText;
-            const editId = document.getElementById('edit-id').value; // CORRECTION: Capturer l'ID avant le try-catch
-            
-            saveBtn.innerText = 'Localisation...';
-            saveBtn.disabled = true;
-
-            try {
-                const firstName = document.getElementById('first_name').value;
-                const lastName = document.getElementById('last_name').value;
-                const email = document.getElementById('email').value;
-                const phone = document.getElementById('phone').value;
-                const city = document.getElementById('city').value;
-                const company = document.getElementById('company').value;
-                const scopeRegional = document.getElementById('scope-regional').checked;
-                const scopeNational = document.getElementById('scope-national').checked;
-
-                if (!firstName || !city) throw new Error('Le prénom et la ville sont obligatoires');
-
-                const coords = await geocode(city);
-                if (!coords) throw new Error('Ville non trouvée');
-
-                const region = await findRegion(coords.lat, coords.lon);
-
-                const contactData = { 
-                    id: editId || Date.now().toString(), 
-                    firstName, lastName, email, phone, city, region, company,
-                    scopeRegional, scopeNational,
-                    lat: coords.lat, lon: coords.lon, fullName: coords.fullName 
-                };
-
-                if (editId) {
-                    const index = contacts.findIndex(c => c.id === editId);
-                    contacts[index] = contactData;
+                if (mergeMode === 'merge') {
+                    const idx = contacts.findIndex(c =>
+                        c.firstName.toLowerCase() === firstName.toLowerCase() &&
+                        (c.lastName||'').toLowerCase() === lastName.toLowerCase() &&
+                        (c.city||'').toLowerCase() === city.toLowerCase()
+                    );
+                    if (idx >= 0) { contacts[idx] = { ...contacts[idx], ...nc }; updated++; }
+                    else { contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); added++; }
                 } else {
-                    contacts.push(contactData);
+                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); added++;
                 }
-
-                await fetch('/api/contacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(contacts)
-                });
-
-                // CORRECTION: Réinitialiser le formulaire AVANT de fermer le modal
-                resetForm();
-                closeModal();
-                map.setView([contactData.lat, contactData.lon], 12);
-            } catch (err) {
-                alert(err.message);
-                saveBtn.innerText = originalText;
-                saveBtn.disabled = false;
-            }
-        }
-
-        function addMarkerToMap(contact) {
-            if (contact.lat == null || contact.lon == null) return;
-            // Les contacts passés ici sont déjà filtrés par filterData(), pas besoin de re-filtrer
-
-            const color = getCompanyColor(contact.company);
-            const icon = L.divIcon({
-                className: 'custom-div-icon',
-                html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
-                iconSize: [14, 14],
-                iconAnchor: [7, 7]
-            });
-
-            // Générer les badges de portée
-            let scopeBadges = '';
-            if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Régional</span>';
-            if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">National</span>';
-
-            const marker = L.marker([contact.lat, contact.lon], { icon }).addTo(map)
-                .bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
-                        <b style="font-size: 1rem;">${contact.firstName} ${contact.lastName || ''}</b>${scopeBadges}<br>
-                        <span style="color: ${color}; font-weight: 600; font-size: 0.8rem;">${contact.company || 'Privé'}</span><br>
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 8px 0;">
-                        ${contact.email ? `<p style="margin: 4px 0; font-size: 0.875rem;">📧 ${contact.email}</p>` : ''}
-                        ${contact.phone ? `<p style="margin: 4px 0; font-size: 0.875rem;">📞 ${contact.phone}</p>` : ''}
-                        <p style="margin: 4px 0; font-size: 0.875rem;">📍 ${contact.city}</p>
-                        <p style="margin: 4px 0; font-size: 0.75rem; color: var(--text-muted);">🗺️ ${contact.region || 'N/A'}</p>
-                    </div>
-                `);
-            markers[contact.id] = marker;
-        }
-
-        function renderContacts(filtered = null) {
-            const container = document.getElementById('contacts');
-            container.innerHTML = '';
-            
-            if (!filtered) {
-                const searchTerm = (document.getElementById('contact-search')?.value || '').toLowerCase();
-                filtered = contacts.filter(c => {
-                    const matchRegion = currentRegion === 'all' || c.region === currentRegion;
-                    const matchCompany = currentCompany === 'all' || c.company === currentCompany;
-                    const matchSearch = !searchTerm || 
-                        (c.firstName + ' ' + (c.lastName || '')).toLowerCase().includes(searchTerm) ||
-                        (c.city || '').toLowerCase().includes(searchTerm) ||
-                        (c.company || '').toLowerCase().includes(searchTerm);
-                    return matchRegion && matchCompany && matchSearch;
-                });
             }
 
-            filtered.forEach(contact => {
-                const color = getCompanyColor(contact.company);
-                
-                // Générer les badges de portée
-                let scopeBadges = '';
-                if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Régional</span>';
-                if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">National</span>';
-                
-                const div = document.createElement('div');
-                div.className = 'contact-item';
-                div.style.setProperty('--company-color', color);
-                div.innerHTML = `
-                    <div style="padding-left: 8px;">
-                        <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}</h3>
-                        <p style="color: ${color}; font-weight: 600;">🏢 ${contact.company || 'Privé'}</p>
-                        ${contact.email ? `<p>📧 ${contact.email}</p>` : ''}
-                        ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
-                        <p>📍 ${contact.city}</p>
-                        <div class="action-btns">
-                            <button class="edit-btn" onclick="editContact('${contact.id}')">Modifier</button>
-                            <button class="delete-btn" onclick="deleteContact('${contact.id}')">Supprimer</button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+            showImportProgress('Sauvegarde...', rows.length, rows.length);
+            await saveToServer();
+            hideImportProgress();
+            refreshUI();
+
+            const parts = [`${added} ajouté(s)`];
+            if (updated) parts.push(`${updated} mis à jour`);
+            if (skipped) parts.push(`${skipped} ignoré(s)`);
+            toast(`✅ Import : ${parts.join(' · ')}`);
+
+        } catch (err) {
+            hideImportProgress();
+            toast('Erreur import : ' + err.message, 'error');
+            console.error(err);
         }
+    };
+    reader.readAsArrayBuffer(file);
+}
 
-        function copyAllEmails() {
-            const emails = contacts.map(c => c.email).filter(Boolean).join('; ');
-            if (!emails) return alert('Aucun email trouvé');
-            navigator.clipboard.writeText(emails);
-            alert('Tous les emails ont été copiés dans le presse-papier !');
-        }
+// ══════════════════════════════════════════════
+// BACK TO TOP
+// ══════════════════════════════════════════════
+function scrollToTop() {
+    document.getElementById('sidebar').scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('contacts-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-        function editContact(id) {
-            const contact = contacts.find(c => c.id === id);
-            document.getElementById('edit-id').value = contact.id;
-            document.getElementById('first_name').value = contact.firstName;
-            document.getElementById('last_name').value = contact.lastName;
-            document.getElementById('email').value = contact.email || '';
-            document.getElementById('phone').value = contact.phone || '';
-            document.getElementById('city').value = contact.city;
-            document.getElementById('region').value = contact.region || '';
-            document.getElementById('company').value = contact.company || '';
-            document.getElementById('scope-regional').checked = contact.scopeRegional || false;
-            document.getElementById('scope-national').checked = contact.scopeNational || false;
-            document.getElementById('modal-title').innerText = 'Modifier le contact';
-            document.getElementById('save-btn').innerText = 'Mettre à jour';
-            openModal();
-        }
-
-        function openModal() {
-            document.getElementById('modal-overlay').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').style.display = 'none';
-            resetForm();
-        }
-
-        async function deleteContact(id) {
-            if (confirm('Supprimer ce contact ?')) {
-                contacts = contacts.filter(c => c.id !== id);
-                await fetch('/api/contacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(contacts)
-                });
-                refreshUI();
-            }
-        }
-
-        function showImportChoiceDialog(existingCount, newCount) {
-            return new Promise((resolve) => {
-                const overlay = document.createElement('div');
-                overlay.style.cssText = `
-                    position:fixed;top:0;left:0;width:100%;height:100%;
-                    background:rgba(0,0,0,0.75);z-index:10000;
-                    display:flex;align-items:center;justify-content:center;
-                `;
-                overlay.innerHTML = `
-                    <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;
-                                padding:32px;max-width:420px;width:90%;font-family:'Inter',sans-serif;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">📂 Import Excel</div>
-                        <p style="color:#94a3b8;font-size:0.875rem;margin:0 0 20px;">
-                            La base contient déjà <strong style="color:#f8fafc">${existingCount} contact(s)</strong>.<br>
-                            Le fichier contient <strong style="color:#f8fafc">${newCount} ligne(s)</strong>.<br>
-                            Que souhaitez-vous faire ?
-                        </p>
-                        <div style="display:flex;flex-direction:column;gap:10px;">
-                            <button id="btn-replace" style="
-                                background:#ef4444;color:#fff;border:none;border-radius:10px;
-                                padding:12px 16px;cursor:pointer;font-size:0.875rem;font-weight:600;text-align:left;
-                            ">🗑️ Remplacer — Supprimer les anciens et importer le fichier</button>
-                            <button id="btn-merge" style="
-                                background:#3b82f6;color:#fff;border:none;border-radius:10px;
-                                padding:12px 16px;cursor:pointer;font-size:0.875rem;font-weight:600;text-align:left;
-                            ">🔄 Fusionner — Mettre à jour les existants + ajouter les nouveaux</button>
-                            <button id="btn-cancel" style="
-                                background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:10px;
-                                padding:10px 16px;cursor:pointer;font-size:0.875rem;
-                            ">Annuler</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                overlay.querySelector('#btn-replace').onclick = () => { overlay.remove(); resolve('replace'); };
-                overlay.querySelector('#btn-merge').onclick   = () => { overlay.remove(); resolve('merge');  };
-                overlay.querySelector('#btn-cancel').onclick  = () => { overlay.remove(); resolve(null);    };
-            });
-        }
-
-        function parseScope(scopeStr) {
-            if (!scopeStr) return { scopeRegional: false, scopeNational: false };
-            const s = scopeStr.toString().toLowerCase();
-            return {
-                scopeRegional: s.includes('régional') || s.includes('regional'),
-                scopeNational: s.includes('national')
-            };
-        }
-
-        function showImportProgress(message, current, total) {
-            let bar = document.getElementById('import-progress-bar');
-            if (!bar) {
-                const container = document.createElement('div');
-                container.id = 'import-progress-container';
-                container.style.cssText = `
-                    position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;
-                    background: rgba(0,0,0,0.7); display: flex; align-items: center;
-                    justify-content: center; height: 100%; flex-direction: column; gap: 16px;
-                `;
-                container.innerHTML = `
-                    <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 32px; min-width: 360px; text-align: center;">
-                        <div style="font-size: 1rem; font-weight: 600; color: #f9fafb; margin-bottom: 16px;" id="import-progress-msg"></div>
-                        <div style="background: #374151; border-radius: 9999px; height: 10px; overflow: hidden; margin-bottom: 10px;">
-                            <div id="import-progress-bar" style="background: #3b82f6; height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 9999px;"></div>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #9ca3af;" id="import-progress-count"></div>
-                    </div>
-                `;
-                document.body.appendChild(container);
-                bar = document.getElementById('import-progress-bar');
-            }
-            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-            bar.style.width = pct + '%';
-            document.getElementById('import-progress-msg').textContent = message;
-            document.getElementById('import-progress-count').textContent = `${current} / ${total}`;
-        }
-
-        function hideImportProgress() {
-            const el = document.getElementById('import-progress-container');
-            if (el) el.remove();
-        }
-
-        async function importExcel(input) {
-            const file = input.files[0];
-            if (!file) return;
-            // Reset file input so the same file can be re-imported if needed
-            input.value = '';
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-
-                    // Trouver la feuille qui contient les colonnes de contacts (pas forcément la première)
-                    const contactColumns = ['city', 'first_name', 'ville', 'prenom', 'first name'];
-                    let sheetName = workbook.SheetNames[0];
-                    for (const name of workbook.SheetNames) {
-                        const testRows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 });
-                        if (testRows.length > 0) {
-                            const headers = (testRows[0] || []).map(h => String(h || '').toLowerCase().trim());
-                            if (contactColumns.some(col => headers.includes(col))) {
-                                sheetName = name;
-                                break;
-                            }
-                        }
-                    }
-
-                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-                    if (rows.length === 0) {
-                        alert('Le fichier est vide ou le format est incorrect.');
-                        return;
-                    }
-
-                    // ── Choix : écraser ou fusionner ──
-                    let mergeMode = 'replace';
-                    if (contacts.length > 0) {
-                        const choice = await showImportChoiceDialog(contacts.length, rows.length);
-                        if (choice === null) return; // annulé
-                        mergeMode = choice;
-                    }
-
-                    let imported = 0;
-                    let updated  = 0;
-                    let skipped  = 0;
-                    const skippedRows = [];
-
-                    if (mergeMode === 'replace') contacts = [];
-
-                    showImportProgress('Démarrage de l\'import...', 0, rows.length);
-
-                    for (let i = 0; i < rows.length; i++) {
-                        const row = rows[i];
-
-                        const city      = (row.city       || row.City       || row.Ville      || '').toString().trim();
-                        const firstName = (row.first_name || row['First Name'] || row.Prenom  || '').toString().trim();
-                        const lastName  = (row.last_name  || row['Last Name']  || row.Nom     || '').toString().trim();
-                        const company   = (row.Company    || row.company    || row.Entreprise  || '').toString().trim();
-                        const email     = (row.email      || row.Email      || '').toString().trim();
-                        const phone     = (row.phone      || row.Phone      || row.Telephone   || '').toString().trim();
-                        const regionFromFile = (row.Region || row.region || '').toString().trim();
-                        const deliveryZone   = (row.delivery_zone || row['Delivery Zone'] || '').toString().trim();
-                        const scopeStr       = (row.Scope  || row.scope     || '').toString().trim();
-                        const { scopeRegional, scopeNational } = parseScope(scopeStr);
-
-                        if (!firstName && !city) {
-                            skipped++;
-                            skippedRows.push(`Ligne ${i + 2}: prénom et ville manquants`);
-                            showImportProgress(`Import en cours...`, i + 1, rows.length);
-                            continue;
-                        }
-
-                        showImportProgress(`Géocodage : ${city || '(sans ville)'}...`, i + 1, rows.length);
-
-                        let lat, lon, fullName, region;
-
-                        if (city) {
-                            const coords = await geocode(city);
-                            if (coords) {
-                                lat = coords.lat;
-                                lon = coords.lon;
-                                fullName = coords.fullName;
-                                // Prefer region from geojson layer, fallback to Excel value
-                                region = await findRegion(lat, lon) || regionFromFile;
-                                await new Promise(r => setTimeout(r, 1100));
-                            } else {
-                                // Geocoding failed but we still have region from Excel
-                                region = regionFromFile;
-                            }
-                        } else {
-                            region = regionFromFile;
-                        }
-
-                        const newContact = {
-                            firstName,
-                            lastName,
-                            email,
-                            phone,
-                            city,
-                            region,
-                            company,
-                            deliveryZone,
-                            scopeRegional,
-                            scopeNational,
-                            lat:  lat  || null,
-                            lon:  lon  || null,
-                            fullName: fullName || ''
-                        };
-
-                        if (mergeMode === 'merge') {
-                            // Chercher doublon par prénom + nom + ville (insensible à la casse)
-                            const existingIdx = contacts.findIndex(c =>
-                                c.firstName.toLowerCase() === firstName.toLowerCase() &&
-                                (c.lastName || '').toLowerCase() === lastName.toLowerCase() &&
-                                (c.city || '').toLowerCase() === city.toLowerCase()
-                            );
-                            if (existingIdx >= 0) {
-                                contacts[existingIdx] = { ...contacts[existingIdx], ...newContact };
-                                updated++;
-                            } else {
-                                contacts.push({ id: Date.now().toString() + Math.random(), ...newContact });
-                                imported++;
-                            }
-                        } else {
-                            contacts.push({ id: Date.now().toString() + Math.random(), ...newContact });
-                            imported++;
-                        }
-                    }
-
-                    showImportProgress('Sauvegarde...', rows.length, rows.length);
-
-                    await fetch('/api/contacts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(contacts)
-                    });
-
-                    hideImportProgress();
-                    filterData();
-                    updateFilters();
-
-                    let msg = `✅ Import terminé !\n\n• ${imported} contact(s) ajouté(s)`;
-                    if (updated > 0)  msg += `\n• ${updated} contact(s) mis à jour`;
-                    if (skipped > 0)  msg += `\n• ${skipped} ligne(s) ignorée(s) (prénom et ville manquants)`;
-                    if (skippedRows.length > 0 && skippedRows.length <= 5) {
-                        msg += '\n\nDétails :\n' + skippedRows.join('\n');
-                    }
-                    alert(msg);
-
-                } catch (err) {
-                    hideImportProgress();
-                    alert('Erreur lors de l\'import : ' + err.message);
-                    console.error(err);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function resetForm() {
-            document.getElementById('edit-id').value = '';
-            document.getElementById('first_name').value = '';
-            document.getElementById('last_name').value = '';
-            document.getElementById('email').value = '';
-            document.getElementById('phone').value = '';
-            document.getElementById('city').value = '';
-            document.getElementById('region').value = '';
-            document.getElementById('company').value = '';
-            document.getElementById('scope-regional').checked = false;
-            document.getElementById('scope-national').checked = false;
-            document.getElementById('modal-title').innerText = 'Nouveau Contact';
-            document.getElementById('save-btn').innerText = 'Enregistrer le contact';
-        }
-
-        init();
-    </script>
+function initBackToTopBtn() {
+    const btn = document.getElementById('back-top-btn');
+    const checkScroll = () => {
+        const sb = document.getElementById('sidebar').scrollTop;
+        const cs = document.getElementById('contacts-scroll').scrollTop;
+        btn.classList.toggle('visible', sb > 150 || cs > 150);
+    };
+    document.getElementById('sidebar').addEventListener('scroll', checkScroll);
+    document.getElementById('contacts-scroll').addEventListener('scroll', checkScroll);
+}
+</script>
 </body>
 </html>
