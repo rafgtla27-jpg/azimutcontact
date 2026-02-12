@@ -375,6 +375,30 @@
     </div>
 
     <div id="main-content" style="display: none; width: 100%; height: 100%; display: flex;">
+
+        <!-- Bouton retour flottant haut-gauche -->
+        <button id="back-top-btn" onclick="scrollSidebarToTop()" title="Retour en haut" style="
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1500;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        " onmouseover="this.style.background='#4f46e5';this.style.transform='scale(1.1)'"
+           onmouseout="this.style.background='#6366f1';this.style.transform='scale(1)'">
+            ↑
+        </button>
         <div id="sidebar">
         <button onclick="openModal()" style="margin-bottom: 20px;">+ Ajouter un contact</button>
 
@@ -572,6 +596,30 @@
         }
 
         // Fonction pour réinitialiser la vue de la carte
+        // ── Bouton retour en haut : scroll sidebar + visibilité ──
+        function scrollSidebarToTop() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.scrollTo({ top: 0, behavior: 'smooth' });
+            const contactList = document.getElementById('contact-list');
+            if (contactList) contactList.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function initBackToTopBtn() {
+            const sidebar = document.getElementById('sidebar');
+            const contactList = document.getElementById('contact-list');
+            const btn = document.getElementById('back-top-btn');
+            if (!btn) return;
+
+            const showBtn = () => {
+                const scrolled = (sidebar && sidebar.scrollTop > 120) ||
+                                 (contactList && contactList.scrollTop > 120);
+                btn.style.display = scrolled ? 'flex' : 'none';
+            };
+            if (sidebar) sidebar.addEventListener('scroll', showBtn);
+            if (contactList) contactList.addEventListener('scroll', showBtn);
+            window.addEventListener('scroll', showBtn);
+        }
+
         function resetMapView() {
             map.setView([46.2276, 2.2137], 6);
             currentRegion = 'all';
@@ -598,6 +646,7 @@
             filterData();
             await loadRegions();
             await loadDepts();
+            initBackToTopBtn();
         }
 
         async function loadRegions() {
@@ -851,6 +900,7 @@
         }
 
         function addMarkerToMap(contact) {
+            if (contact.lat == null || contact.lon == null) return; // pas de coordonnées, on skip
             const matchRegion = currentRegion === 'all' || contact.region === currentRegion;
             const matchCompany = currentCompany === 'all' || contact.company === currentCompany;
             if (!matchRegion || !matchCompany) return;
@@ -973,6 +1023,46 @@
             }
         }
 
+        function showImportChoiceDialog(existingCount, newCount) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position:fixed;top:0;left:0;width:100%;height:100%;
+                    background:rgba(0,0,0,0.75);z-index:10000;
+                    display:flex;align-items:center;justify-content:center;
+                `;
+                overlay.innerHTML = `
+                    <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;
+                                padding:32px;max-width:420px;width:90%;font-family:'Inter',sans-serif;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">📂 Import Excel</div>
+                        <p style="color:#94a3b8;font-size:0.875rem;margin:0 0 20px;">
+                            La base contient déjà <strong style="color:#f8fafc">${existingCount} contact(s)</strong>.<br>
+                            Le fichier contient <strong style="color:#f8fafc">${newCount} ligne(s)</strong>.<br>
+                            Que souhaitez-vous faire ?
+                        </p>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <button id="btn-replace" style="
+                                background:#ef4444;color:#fff;border:none;border-radius:10px;
+                                padding:12px 16px;cursor:pointer;font-size:0.875rem;font-weight:600;text-align:left;
+                            ">🗑️ Remplacer — Supprimer les anciens et importer le fichier</button>
+                            <button id="btn-merge" style="
+                                background:#3b82f6;color:#fff;border:none;border-radius:10px;
+                                padding:12px 16px;cursor:pointer;font-size:0.875rem;font-weight:600;text-align:left;
+                            ">🔄 Fusionner — Mettre à jour les existants + ajouter les nouveaux</button>
+                            <button id="btn-cancel" style="
+                                background:transparent;color:#94a3b8;border:1px solid #475569;border-radius:10px;
+                                padding:10px 16px;cursor:pointer;font-size:0.875rem;
+                            ">Annuler</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                overlay.querySelector('#btn-replace').onclick = () => { overlay.remove(); resolve('replace'); };
+                overlay.querySelector('#btn-merge').onclick   = () => { overlay.remove(); resolve('merge');  };
+                overlay.querySelector('#btn-cancel').onclick  = () => { overlay.remove(); resolve(null);    };
+            });
+        }
+
         function parseScope(scopeStr) {
             if (!scopeStr) return { scopeRegional: false, scopeNational: false };
             const s = scopeStr.toString().toLowerCase();
@@ -1048,9 +1138,20 @@
                         return;
                     }
 
+                    // ── Choix : écraser ou fusionner ──
+                    let mergeMode = 'replace';
+                    if (contacts.length > 0) {
+                        const choice = await showImportChoiceDialog(contacts.length, rows.length);
+                        if (choice === null) return; // annulé
+                        mergeMode = choice;
+                    }
+
                     let imported = 0;
-                    let skipped = 0;
+                    let updated  = 0;
+                    let skipped  = 0;
                     const skippedRows = [];
+
+                    if (mergeMode === 'replace') contacts = [];
 
                     showImportProgress('Démarrage de l\'import...', 0, rows.length);
 
@@ -1096,8 +1197,7 @@
                             region = regionFromFile;
                         }
 
-                        contacts.push({
-                            id: Date.now().toString() + Math.random(),
+                        const newContact = {
                             firstName,
                             lastName,
                             email,
@@ -1111,8 +1211,26 @@
                             lat:  lat  || null,
                             lon:  lon  || null,
                             fullName: fullName || ''
-                        });
-                        imported++;
+                        };
+
+                        if (mergeMode === 'merge') {
+                            // Chercher doublon par prénom + nom + ville (insensible à la casse)
+                            const existingIdx = contacts.findIndex(c =>
+                                c.firstName.toLowerCase() === firstName.toLowerCase() &&
+                                (c.lastName || '').toLowerCase() === lastName.toLowerCase() &&
+                                (c.city || '').toLowerCase() === city.toLowerCase()
+                            );
+                            if (existingIdx >= 0) {
+                                contacts[existingIdx] = { ...contacts[existingIdx], ...newContact };
+                                updated++;
+                            } else {
+                                contacts.push({ id: Date.now().toString() + Math.random(), ...newContact });
+                                imported++;
+                            }
+                        } else {
+                            contacts.push({ id: Date.now().toString() + Math.random(), ...newContact });
+                            imported++;
+                        }
                     }
 
                     showImportProgress('Sauvegarde...', rows.length, rows.length);
@@ -1127,10 +1245,9 @@
                     filterData();
                     updateFilters();
 
-                    let msg = `✅ Import terminé !\n\n• ${imported} contact(s) importé(s)`;
-                    if (skipped > 0) {
-                        msg += `\n• ${skipped} ligne(s) ignorée(s) (prénom et ville manquants)`;
-                    }
+                    let msg = `✅ Import terminé !\n\n• ${imported} contact(s) ajouté(s)`;
+                    if (updated > 0)  msg += `\n• ${updated} contact(s) mis à jour`;
+                    if (skipped > 0)  msg += `\n• ${skipped} ligne(s) ignorée(s) (prénom et ville manquants)`;
                     if (skippedRows.length > 0 && skippedRows.length <= 5) {
                         msg += '\n\nDétails :\n' + skippedRows.join('\n');
                     }
