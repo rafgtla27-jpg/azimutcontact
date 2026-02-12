@@ -591,6 +591,122 @@
             color: var(--text);
             cursor: pointer;
         }
+
+        /* ── ZONE MAP SELECTOR MODAL ── */
+        .zone-map-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2001;
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .zone-map-modal.open { display: flex; }
+        .zone-map-content {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
+            animation: modalIn 0.2s ease;
+        }
+        .zone-map-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .zone-map-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        .zone-map-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .zone-map-sidebar {
+            width: 280px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .zone-map-sidebar::-webkit-scrollbar { width: 4px; }
+        .zone-map-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .zone-map-container {
+            flex: 1;
+            position: relative;
+        }
+        #zone-selector-map {
+            width: 100%;
+            height: 100%;
+        }
+        .zone-map-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .region-checkbox-item {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .region-checkbox-item:hover {
+            background: var(--card-hover);
+            border-color: var(--primary);
+        }
+        .region-checkbox-item.selected {
+            background: rgba(99,102,241,0.15);
+            border-color: var(--primary);
+        }
+        .region-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .region-checkbox-item label {
+            flex: 1;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin: 0;
+        }
+        .selected-zones-display {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+        .zone-chip {
+            display: inline-block;
+            background: rgba(99,102,241,0.2);
+            color: var(--primary);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin: 2px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -798,15 +914,18 @@
         </div>
         <div class="form-group">
             <label>🚚 Zone de Livraison</label>
-            <input type="text" id="delivery-zone" placeholder="Ex: Nord-Est, Île-de-France, etc." 
-                   style="border-left: 3px solid #f59e0b;">
+            <input type="text" id="delivery-zone" placeholder="Cliquez pour sélectionner" 
+                   style="border-left: 3px solid #f59e0b;" readonly>
             <div style="margin-top:8px;">
-                <button type="button" class="btn-ghost" style="font-size:0.7rem;padding:4px 8px;" 
-                        onclick="showRegionSelector()">
-                    🗺️ Sélectionner des régions
+                <button type="button" class="btn-ghost" style="font-size:0.75rem;padding:8px;" 
+                        onclick="showZoneMapSelector()">
+                    🗺️ Sélectionner les régions sur la carte
                 </button>
             </div>
-            <div id="selected-regions-display" style="margin-top:6px;font-size:0.7rem;color:var(--text-muted);"></div>
+            <div id="selected-zones-display" class="selected-zones-display" style="display:none;">
+                <strong style="font-size:0.7rem;color:var(--text-muted);">Zones sélectionnées:</strong>
+                <div id="zone-chips-container" style="margin-top:6px;"></div>
+            </div>
         </div>
         <div class="form-group">
             <label>Portée du contact</label>
@@ -825,18 +944,31 @@
     </div>
 </div>
 
-<!-- REGION SELECTOR MODAL -->
-<div id="region-selector-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2001;backdrop-filter:blur(4px);">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sidebar-bg);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3 style="margin:0;font-size:1rem;">🗺️ Sélectionner les régions</h3>
-            <button onclick="closeRegionSelector()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:0;width:28px;height:28px;">✕</button>
+<!-- ZONE MAP SELECTOR MODAL -->
+<div id="zone-map-modal" class="zone-map-modal">
+    <div class="zone-map-content">
+        <div class="zone-map-header">
+            <h3>🗺️ Sélectionner les zones de livraison</h3>
+            <button class="close-modal" onclick="closeZoneMapSelector()">✕</button>
         </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px;">Cochez les régions à inclure dans cette zone de livraison</p>
-        <div id="region-checkboxes-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-        <div style="margin-top:16px;display:flex;gap:8px;">
-            <button onclick="applyRegionSelection()" class="btn-add" style="flex:1;">Appliquer</button>
-            <button onclick="closeRegionSelector()" class="btn-ghost" style="flex:1;">Annuler</button>
+        <div class="zone-map-body">
+            <div class="zone-map-sidebar">
+                <p style="font-size:0.75rem;font-weight:600;margin:0 0 12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">
+                    RÉGIONS FRANÇAISES
+                </p>
+                <div id="zone-regions-list"></div>
+            </div>
+            <div class="zone-map-container">
+                <div id="zone-selector-map"></div>
+            </div>
+        </div>
+        <div class="zone-map-footer">
+            <button class="btn-ghost" onclick="closeZoneMapSelector()" style="width:auto;padding:10px 20px;">
+                Annuler
+            </button>
+            <button class="btn-add" onclick="applyZoneSelection()" style="width:auto;padding:10px 24px;">
+                ✓ Valider la sélection
+            </button>
         </div>
     </div>
 </div>
@@ -874,8 +1006,23 @@ let sortMode = 'name';
 let currentFiltered = [];
 let cityLookupTimer = null;
 
+// Nouveau: Zone selector map
+let zoneSelectorMap = null;
+let zoneRegionLayer = null;
+let selectedZoneRegions = [];
+
+// Nouveau: Geocoding cache pour performance
+const geocodeCache = {};
+
 const COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6',
                 '#ec4899','#06b6d4','#10b981','#f97316','#6366f1'];
+
+const FRENCH_REGIONS = [
+    'Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne',
+    'Centre-Val de Loire', 'Corse', 'Grand Est', 'Hauts-de-France',
+    'Île-de-France', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie',
+    'Pays de la Loire', 'Provence-Alpes-Côte d\'Azur'
+];
 
 // ══════════════════════════════════════════════
 // TOAST
@@ -1198,26 +1345,76 @@ async function findRegion(lat, lon) {
 }
 
 // ══════════════════════════════════════════════
-// GEOCODE
+// GEOCODE - OPTIMISÉ AVEC CACHE
 // ══════════════════════════════════════════════
 async function geocode(city) {
+    // Check cache first
+    const cacheKey = city.toLowerCase().trim();
+    if (geocodeCache[cacheKey] !== undefined) {
+        return geocodeCache[cacheKey];
+    }
+
     try {
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
         const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
         const data = await res.json();
-        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
-    } catch (e) { console.error('Geocode error:', e); }
+        if (data.length > 0) {
+            const result = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
+            geocodeCache[cacheKey] = result;
+            return result;
+        }
+    } catch (e) { 
+        console.error('Geocode error:', e); 
+    }
+    geocodeCache[cacheKey] = null;
     return null;
 }
 
 async function geocodeRegion(region) {
+    const cacheKey = `region_${region.toLowerCase().trim()}`;
+    if (geocodeCache[cacheKey] !== undefined) {
+        return geocodeCache[cacheKey];
+    }
+
     try {
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(region + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
         const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
         const data = await res.json();
-        if (data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-    } catch (e) { console.error('Geocode region error:', e); }
+        if (data.length > 0) {
+            const result = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+            geocodeCache[cacheKey] = result;
+            return result;
+        }
+    } catch (e) { 
+        console.error('Geocode region error:', e); 
+    }
+    geocodeCache[cacheKey] = null;
     return null;
+}
+
+// NOUVEAU: Batch geocoding pour import Excel rapide
+async function geocodeBatch(cities, onProgress) {
+    const BATCH_SIZE = 5; // 5 requêtes en parallèle
+    const DELAY_MS = 250; // 250ms entre les batchs
+    const results = [];
+    
+    for (let i = 0; i < cities.length; i += BATCH_SIZE) {
+        const batch = cities.slice(i, i + BATCH_SIZE);
+        const batchPromises = batch.map(city => geocode(city));
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        if (onProgress) {
+            onProgress(Math.min(i + BATCH_SIZE, cities.length), cities.length);
+        }
+        
+        // Délai entre les batchs
+        if (i + BATCH_SIZE < cities.length) {
+            await new Promise(r => setTimeout(r, DELAY_MS));
+        }
+    }
+    
+    return results;
 }
 
 let cityDebounceTimer = null;
@@ -1484,16 +1681,19 @@ async function toggleZoneOverlay(zoneName, show, color) {
     
     if (!show) return;
     
-    // Obtenir toutes les régions associées à cette zone
-    const contactsInZone = contacts.filter(c => c.deliveryZone === zoneName && c.region);
-    const regionsInZone = [...new Set(contactsInZone.map(c => c.region))];
+    // Obtenir les régions stockées dans deliveryZoneRegions du premier contact avec cette zone
+    const contactsInZone = contacts.filter(c => c.deliveryZone === zoneName);
+    if (contactsInZone.length === 0) return;
     
-    if (!regionLayer || regionsInZone.length === 0) return;
+    // Récupérer les régions de la zone depuis le premier contact (tous ont la même config)
+    const zoneRegions = contactsInZone[0].deliveryZoneRegions || [];
+    
+    if (!regionLayer || zoneRegions.length === 0) return;
     
     // Créer un overlay pour les régions de cette zone
     const features = [];
     regionLayer.eachLayer(layer => {
-        if (regionsInZone.includes(layer.feature.properties.nom)) {
+        if (zoneRegions.includes(layer.feature.properties.nom)) {
             features.push(layer.feature);
         }
     });
@@ -1504,12 +1704,15 @@ async function toggleZoneOverlay(zoneName, show, color) {
                 fillColor: color,
                 weight: 2,
                 color: color,
-                fillOpacity: 0.25,
-                opacity: 0.8
+                fillOpacity: 0.3,
+                opacity: 0.9
             }
         }).addTo(map);
         
-        overlay.bindTooltip(`Zone: ${zoneName}`, { permanent: false, sticky: true });
+        overlay.bindTooltip(`Zone: ${zoneName} (${zoneRegions.length} région${zoneRegions.length > 1 ? 's' : ''})`, { 
+            permanent: false, 
+            sticky: true 
+        });
         deliveryZoneOverlays[zoneName] = overlay;
     }
 }
@@ -1566,7 +1769,8 @@ async function saveContact() {
             scopeRegional, scopeNational,
             lat: coords?.lat || null, 
             lon: coords?.lon || null, 
-            fullName: coords?.fullName || ''
+            fullName: coords?.fullName || '',
+            deliveryZoneRegions: window.tempDeliveryZoneRegions || []
         };
 
         if (editId) {
@@ -1575,6 +1779,9 @@ async function saveContact() {
         } else {
             contacts.push(contactData);
         }
+
+        // Nettoyer la variable temporaire
+        delete window.tempDeliveryZoneRegions;
 
         await saveToServer();
         closeModal();
@@ -1602,6 +1809,25 @@ function editContact(id) {
     document.getElementById('delivery-zone').value = c.deliveryZone || '';
     document.getElementById('scope-regional').checked = !!c.scopeRegional;
     document.getElementById('scope-national').checked = !!c.scopeNational;
+    
+    // Afficher les zones si elles existent
+    if (c.deliveryZoneRegions && c.deliveryZoneRegions.length > 0) {
+        const display = document.getElementById('selected-zones-display');
+        const chipsContainer = document.getElementById('zone-chips-container');
+        chipsContainer.innerHTML = c.deliveryZoneRegions.map(r => 
+            `<span class="zone-chip">${r}</span>`
+        ).join('');
+        display.style.display = 'block';
+        
+        // Stocker pour édition ultérieure
+        selectedZoneRegions = [...c.deliveryZoneRegions];
+        window.tempDeliveryZoneRegions = [...c.deliveryZoneRegions];
+    } else {
+        document.getElementById('selected-zones-display').style.display = 'none';
+        selectedZoneRegions = [];
+        delete window.tempDeliveryZoneRegions;
+    }
+    
     document.getElementById('modal-title').textContent = 'Modifier le contact';
     document.getElementById('save-btn').textContent    = 'Mettre à jour';
     openModal();
@@ -1642,9 +1868,13 @@ function resetForm() {
     });
     document.getElementById('scope-regional').checked = false;
     document.getElementById('scope-national').checked = false;
+    document.getElementById('selected-zones-display').style.display = 'none';
+    document.getElementById('zone-chips-container').innerHTML = '';
     document.getElementById('modal-title').textContent  = 'Nouveau Contact';
     document.getElementById('save-btn').textContent     = 'Enregistrer le contact';
     document.getElementById('save-btn').disabled        = false;
+    selectedZoneRegions = [];
+    delete window.tempDeliveryZoneRegions;
 }
 
 // Click outside modal to close
@@ -1653,64 +1883,149 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
 });
 
 // ══════════════════════════════════════════════
-// REGION SELECTOR
+// ZONE MAP SELECTOR - NOUVEAU SYSTÈME
 // ══════════════════════════════════════════════
-const FRENCH_REGIONS = [
-    'Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne',
-    'Centre-Val de Loire', 'Corse', 'Grand Est', 'Hauts-de-France',
-    'Île-de-France', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie',
-    'Pays de la Loire', 'Provence-Alpes-Côte d\'Azur'
-];
-
-let selectedRegionsTemp = [];
-
-function showRegionSelector() {
-    const modal = document.getElementById('region-selector-modal');
-    const list = document.getElementById('region-checkboxes-list');
+function showZoneMapSelector() {
+    const modal = document.getElementById('zone-map-modal');
+    modal.classList.add('open');
     
-    // Obtenir les régions actuellement dans la zone
-    const currentZone = document.getElementById('delivery-zone').value.trim();
-    selectedRegionsTemp = [];
-    
-    // Créer les checkboxes
-    list.innerHTML = FRENCH_REGIONS.map((region, idx) => `
-        <div style="display:flex;align-items:center;gap:6px;padding:6px;background:var(--card-bg);border-radius:6px;">
-            <input type="checkbox" id="region-cb-${idx}" value="${region}" 
-                   style="width:16px;height:16px;">
-            <label for="region-cb-${idx}" style="font-size:0.75rem;cursor:pointer;flex:1;">${region}</label>
-        </div>
-    `).join('');
-    
-    modal.style.display = 'block';
+    // Initialiser la carte si pas encore fait
+    if (!zoneSelectorMap) {
+        setTimeout(() => {
+            zoneSelectorMap = L.map('zone-selector-map').setView([46.2276, 2.2137], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 18
+            }).addTo(zoneSelectorMap);
+            
+            loadZoneRegions();
+        }, 100);
+    } else {
+        // Charger les régions déjà sélectionnées si on édite
+        if (window.tempDeliveryZoneRegions && window.tempDeliveryZoneRegions.length > 0) {
+            selectedZoneRegions = [...window.tempDeliveryZoneRegions];
+        }
+        setTimeout(() => {
+            zoneSelectorMap.invalidateSize();
+            updateZoneRegionsList();
+            updateZoneMapStyles();
+        }, 100);
+    }
 }
 
-function closeRegionSelector() {
-    document.getElementById('region-selector-modal').style.display = 'none';
-    selectedRegionsTemp = [];
+async function loadZoneRegions() {
+    try {
+        const res = await fetch('https://france-geojson.gregoiredavid.fr/repo/regions.geojson');
+        const data = await res.json();
+        
+        zoneRegionLayer = L.geoJSON(data, {
+            style: (feature) => ({
+                fillColor: selectedZoneRegions.includes(feature.properties.nom) ? '#6366f1' : '#475569',
+                weight: 2,
+                opacity: 1,
+                color: '#cbd5e1',
+                fillOpacity: selectedZoneRegions.includes(feature.properties.nom) ? 0.5 : 0.1
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    click: () => {
+                        const regionName = feature.properties.nom;
+                        toggleRegionSelection(regionName);
+                    },
+                    mouseover: (e) => {
+                        e.target.setStyle({ weight: 3, fillOpacity: 0.6 });
+                    },
+                    mouseout: (e) => {
+                        const isSelected = selectedZoneRegions.includes(feature.properties.nom);
+                        e.target.setStyle({ 
+                            weight: 2,
+                            fillOpacity: isSelected ? 0.5 : 0.1 
+                        });
+                    }
+                });
+                
+                layer.bindTooltip(feature.properties.nom, { permanent: false, sticky: true });
+            }
+        }).addTo(zoneSelectorMap);
+        
+        updateZoneRegionsList();
+    } catch (e) {
+        console.error('Erreur chargement régions:', e);
+        toast('Erreur chargement de la carte', 'error');
+    }
 }
 
-function applyRegionSelection() {
-    const checkboxes = document.querySelectorAll('#region-checkboxes-list input[type="checkbox"]:checked');
-    const selectedRegions = Array.from(checkboxes).map(cb => cb.value);
+function updateZoneRegionsList() {
+    const list = document.getElementById('zone-regions-list');
+    list.innerHTML = FRENCH_REGIONS.map(region => {
+        const isSelected = selectedZoneRegions.includes(region);
+        return `
+            <div class="region-checkbox-item ${isSelected ? 'selected' : ''}" onclick="toggleRegionSelection('${region}')">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleRegionSelection('${region}')">
+                <label>${region}</label>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateZoneMapStyles() {
+    if (zoneRegionLayer) {
+        zoneRegionLayer.eachLayer(layer => {
+            const isSelected = selectedZoneRegions.includes(layer.feature.properties.nom);
+            layer.setStyle({
+                fillColor: isSelected ? '#6366f1' : '#475569',
+                fillOpacity: isSelected ? 0.5 : 0.1
+            });
+        });
+    }
+}
+
+function toggleRegionSelection(regionName) {
+    const index = selectedZoneRegions.indexOf(regionName);
+    if (index > -1) {
+        selectedZoneRegions.splice(index, 1);
+    } else {
+        selectedZoneRegions.push(regionName);
+    }
     
-    if (selectedRegions.length === 0) {
-        toast('Aucune région sélectionnée', 'warning');
+    updateZoneMapStyles();
+    updateZoneRegionsList();
+}
+
+function applyZoneSelection() {
+    if (selectedZoneRegions.length === 0) {
+        toast('Veuillez sélectionner au moins une région', 'warning');
         return;
     }
     
-    // Mettre à jour le champ delivery-zone avec un nom généré
-    const zoneName = selectedRegions.length === 1 
-        ? selectedRegions[0]
-        : `Zone ${selectedRegions.length} régions`;
+    // Générer un nom de zone
+    const zoneName = selectedZoneRegions.length === 1 
+        ? selectedZoneRegions[0]
+        : `Zone ${selectedZoneRegions.length} régions`;
     
+    // Mettre à jour le champ
     document.getElementById('delivery-zone').value = zoneName;
     
-    // Afficher les régions sélectionnées
-    const display = document.getElementById('selected-regions-display');
-    display.innerHTML = `<strong>Régions:</strong> ${selectedRegions.join(', ')}`;
+    // Afficher les zones sélectionnées
+    const display = document.getElementById('selected-zones-display');
+    const chipsContainer = document.getElementById('zone-chips-container');
     
-    closeRegionSelector();
-    toast(`${selectedRegions.length} région(s) sélectionnée(s)`);
+    chipsContainer.innerHTML = selectedZoneRegions.sort().map(r => 
+        `<span class="zone-chip">${r}</span>`
+    ).join('');
+    
+    display.style.display = 'block';
+    
+    // Stocker temporairement les régions sélectionnées pour la sauvegarde
+    window.tempDeliveryZoneRegions = [...selectedZoneRegions];
+    
+    closeZoneMapSelector();
+    toast(`✓ Zone configurée: ${selectedZoneRegions.length} région(s) sélectionnée(s)`);
+}
+
+function closeZoneMapSelector() {
+    document.getElementById('zone-map-modal').classList.remove('open');
+    // Ne pas réinitialiser selectedZoneRegions ici pour permettre la réouverture
 }
 
 // ══════════════════════════════════════════════
@@ -1850,8 +2165,13 @@ async function importExcel(input) {
             let added = 0, updated = 0, skipped = 0;
             if (mergeMode === 'replace') contacts = [];
 
-            showImportProgress('Démarrage...', 0, rows.length);
+            showImportProgress('Préparation...', 0, rows.length);
 
+            // NOUVEAU: Batch geocoding pour performance
+            // Collecter toutes les villes uniques d'abord
+            const cityList = [];
+            const rowsData = [];
+            
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const city      = (row.city      || row.City      || row.Ville    || '').toString().trim();
@@ -1863,22 +2183,43 @@ async function importExcel(input) {
                 const regionFF  = (row.Region     || row.region    || '').toString().trim();
                 const deliveryZone = (row.delivery_zone || '').toString().trim();
                 const { scopeRegional, scopeNational } = parseScope(row.Scope || row.scope || '');
+                
+                if (!firstName && !city) { 
+                    skipped++; 
+                    continue; 
+                }
+                
+                rowsData.push({ city, firstName, lastName, company, email, phone, regionFF, deliveryZone, scopeRegional, scopeNational });
+                if (city) cityList.push(city);
+            }
 
-                if (!firstName && !city) { skipped++; showImportProgress('Import...', i+1, rows.length); continue; }
+            // Géocoder toutes les villes en batch (5x plus rapide!)
+            showImportProgress('Géolocalisation des villes...', 0, cityList.length);
+            await geocodeBatch(cityList, (current, total) => {
+                showImportProgress('Géolocalisation des villes...', current, total);
+            });
 
-                showImportProgress(`📍 ${city || firstName}...`, i+1, rows.length);
-
+            // Maintenant créer les contacts avec les coordonnées en cache
+            showImportProgress('Création des contacts...', 0, rowsData.length);
+            for (let i = 0; i < rowsData.length; i++) {
+                const { city, firstName, lastName, company, email, phone, regionFF, deliveryZone, scopeRegional, scopeNational } = rowsData[i];
+                
                 let lat = null, lon = null, fullName = '', region = regionFF;
                 if (city) {
-                    const coords = await geocode(city);
+                    const coords = await geocode(city); // Depuis le cache maintenant!
                     if (coords) {
-                        lat = coords.lat; lon = coords.lon; fullName = coords.fullName;
+                        lat = coords.lat; 
+                        lon = coords.lon; 
+                        fullName = coords.fullName;
                         region = await findRegion(lat, lon) || regionFF;
-                        await new Promise(r => setTimeout(r, 1100));
                     }
                 }
 
-                const nc = { firstName, lastName, email, phone, city, region, company, deliveryZone, scopeRegional, scopeNational, lat, lon, fullName };
+                const nc = { 
+                    firstName, lastName, email, phone, city, region, company, deliveryZone, 
+                    scopeRegional, scopeNational, lat, lon, fullName,
+                    deliveryZoneRegions: [] // Initialisé vide, peut être configuré après
+                };
 
                 if (mergeMode === 'merge') {
                     const idx = contacts.findIndex(c =>
@@ -1886,14 +2227,24 @@ async function importExcel(input) {
                         (c.lastName||'').toLowerCase() === lastName.toLowerCase() &&
                         (c.city||'').toLowerCase() === city.toLowerCase()
                     );
-                    if (idx >= 0) { contacts[idx] = { ...contacts[idx], ...nc }; updated++; }
-                    else { contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); added++; }
+                    if (idx >= 0) { 
+                        contacts[idx] = { ...contacts[idx], ...nc }; 
+                        updated++; 
+                    } else { 
+                        contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); 
+                        added++; 
+                    }
                 } else {
-                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); added++;
+                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); 
+                    added++;
+                }
+                
+                if ((i + 1) % 10 === 0) {
+                    showImportProgress('Création des contacts...', i + 1, rowsData.length);
                 }
             }
 
-            showImportProgress('Sauvegarde...', rows.length, rows.length);
+            showImportProgress('Sauvegarde...', rowsData.length, rowsData.length);
             await saveToServer();
             hideImportProgress();
             refreshUI();
@@ -1901,7 +2252,7 @@ async function importExcel(input) {
             const parts = [`${added} ajouté(s)`];
             if (updated) parts.push(`${updated} mis à jour`);
             if (skipped) parts.push(`${skipped} ignoré(s)`);
-            toast(`✅ Import : ${parts.join(' · ')}`);
+            toast(`✅ Import terminé : ${parts.join(' · ')}`);
 
         } catch (err) {
             hideImportProgress();
