@@ -126,40 +126,50 @@
         }
 
         /* ── MAP ── */
-        #map { 
-            flex: 1; 
-            height: 100vh; 
-            min-width: 0; 
-            position: relative;
-        }
+        #map { flex: 1; height: 100vh; min-width: 0; }
 
-        /* ── BOUTON RETOUR SUR LA CARTE ── */
-        #map-back-btn {
+        /* ── BREADCRUMB ── */
+        #breadcrumb {
             position: absolute;
             top: 16px;
             left: 16px;
             z-index: 1000;
             background: var(--sidebar-bg);
-            border: 2px solid var(--primary);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 10px 16px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 500;
             color: var(--text);
             display: none;
             align-items: center;
             gap: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+        #breadcrumb.visible {
+            display: flex;
+        }
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .breadcrumb-separator {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+        .breadcrumb-home {
+            cursor: pointer;
+            color: var(--primary);
             transition: all 0.2s ease;
         }
-        #map-back-btn:hover {
-            background: var(--card-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(99,102,241,0.4);
+        .breadcrumb-home:hover {
+            color: var(--primary-hover);
         }
-        #map-back-btn.visible {
-            display: flex;
+        .breadcrumb-current {
+            color: var(--text);
+            font-weight: 600;
         }
 
         /* ── CONTACT LIST ── */
@@ -278,6 +288,20 @@
             flex-direction: column;
             gap: 6px;
             padding-left: 8px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+        .city-group-contacts.expanded {
+            max-height: 2000px;
+            opacity: 1;
+        }
+        .city-group-toggle {
+            transition: transform 0.3s ease;
+        }
+        .city-group-toggle.rotated {
+            transform: rotate(180deg);
         }
 
         /* ── CONTACT CARD ── */
@@ -320,10 +344,30 @@
             gap: 5px;
             font-size: 0.7rem;
             color: var(--text-muted);
+            position: relative;
         }
         .contact-meta-line svg {
             opacity: 0.5;
             flex-shrink: 0;
+        }
+        .copy-btn {
+            display: none;
+            background: var(--primary);
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            color: white;
+            margin-left: 6px;
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+        .contact-meta-line:hover .copy-btn {
+            display: inline-block;
         }
 
         .contact-badges {
@@ -754,12 +798,15 @@
 
     <!-- MAP -->
     <div id="map">
-        <button id="map-back-btn" onclick="resetMapView()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Retour à la carte
-        </button>
+        <div id="breadcrumb">
+            <div class="breadcrumb-item">
+                <span class="breadcrumb-home" onclick="resetMapView()">🏠 France</span>
+            </div>
+            <span class="breadcrumb-separator">›</span>
+            <div class="breadcrumb-item">
+                <span class="breadcrumb-current" id="breadcrumb-text"></span>
+            </div>
+        </div>
     </div>
 
     <!-- CONTACT LIST -->
@@ -949,15 +996,16 @@ function resetMapView() {
     selectedContact = null;
     map.setView([46.603354, 1.888334], 6);
     refreshUI();
-    hideMapBackButton();
+    hideBreadcrumb();
 }
 
-function showMapBackButton() {
-    document.getElementById('map-back-btn').classList.add('visible');
+function showBreadcrumb(text) {
+    document.getElementById('breadcrumb-text').textContent = text;
+    document.getElementById('breadcrumb').classList.add('visible');
 }
 
-function hideMapBackButton() {
-    document.getElementById('map-back-btn').classList.remove('visible');
+function hideBreadcrumb() {
+    document.getElementById('breadcrumb').classList.remove('visible');
 }
 
 // ══════════════════════════════════════════════
@@ -973,12 +1021,12 @@ function setFilter(f) {
 function setRegionFilter(region) {
     if (selectedRegion === region) {
         selectedRegion = null;
-        hideMapBackButton();
+        hideBreadcrumb();
     } else {
         selectedRegion = region;
         selectedDept = null;
         selectedContact = null;
-        showMapBackButton();
+        showBreadcrumb(region);
         
         // Zoomer sur la région
         if (franceGeoJSON) {
@@ -995,12 +1043,13 @@ function setRegionFilter(region) {
 function setDeptFilter(dept) {
     if (selectedDept === dept) {
         selectedDept = null;
-        hideMapBackButton();
+        hideBreadcrumb();
     } else {
         selectedDept = dept;
         selectedRegion = null;
         selectedContact = null;
-        showMapBackButton();
+        const regionName = DEPT_TO_REGION[dept] || '';
+        showBreadcrumb(regionName ? `${regionName} › ${dept}` : `Département ${dept}`);
     }
     refreshUI();
 }
@@ -1012,7 +1061,20 @@ function selectContact(contactId) {
     selectedContact = contactId;
     selectedRegion = null;
     selectedDept = null;
-    showMapBackButton();
+    
+    // Construire le breadcrumb
+    let breadcrumbText = '';
+    if (contact.region) {
+        breadcrumbText = contact.region;
+        if (contact.city) {
+            breadcrumbText += ` › ${contact.city}`;
+        }
+    } else if (contact.city) {
+        breadcrumbText = contact.city;
+    } else {
+        breadcrumbText = `${contact.firstName} ${contact.lastName || ''}`.trim();
+    }
+    showBreadcrumb(breadcrumbText);
     
     // Zoomer sur le contact
     if (contact.lat && contact.lon) {
@@ -1160,17 +1222,18 @@ function refreshContactList() {
     
     // Afficher les groupes de villes
     const sortedCities = Object.keys(cityGroups).sort();
-    sortedCities.forEach(city => {
+    sortedCities.forEach((city, index) => {
         const cityContacts = cityGroups[city];
+        const groupId = `city-group-${index}`;
         
         if (cityContacts.length === 1) {
             // Une seule personne dans cette ville : affichage direct
             html += renderContactCard(cityContacts[0]);
         } else {
-            // Plusieurs personnes : regroupement
+            // Plusieurs personnes : regroupement avec collapse/expand
             html += `
                 <div class="city-group">
-                    <div class="city-group-header">
+                    <div class="city-group-header" onclick="toggleCityGroup('${groupId}')">
                         <div class="city-group-title">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -1178,9 +1241,14 @@ function refreshContactList() {
                             </svg>
                             ${city}
                         </div>
-                        <span class="city-group-count">${cityContacts.length}</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="city-group-count">${cityContacts.length}</span>
+                            <svg class="city-group-toggle" id="toggle-${groupId}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="city-group-contacts">
+                    <div class="city-group-contacts expanded" id="${groupId}">
                         ${cityContacts.map(c => renderContactCard(c)).join('')}
                     </div>
                 </div>
@@ -1189,6 +1257,19 @@ function refreshContactList() {
     });
     
     document.getElementById('contacts-scroll').innerHTML = html || '<p style="text-align:center;color:var(--text-muted);padding:20px;">Aucun contact</p>';
+}
+
+function toggleCityGroup(groupId) {
+    const group = document.getElementById(groupId);
+    const toggle = document.getElementById('toggle-' + groupId);
+    
+    if (group.classList.contains('expanded')) {
+        group.classList.remove('expanded');
+        toggle.classList.remove('rotated');
+    } else {
+        group.classList.add('expanded');
+        toggle.classList.add('rotated');
+    }
 }
 
 function renderContactCard(c) {
@@ -1237,6 +1318,7 @@ function renderContactCard(c) {
                             <polyline points="22,6 12,13 2,6"/>
                         </svg>
                         <span>${c.email}</span>
+                        <button class="copy-btn" onclick="event.stopPropagation();copyToClipboard('${c.email}', 'Email copié')">📋</button>
                     </div>
                 ` : ''}
                 ${c.phone ? `
@@ -1245,6 +1327,7 @@ function renderContactCard(c) {
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                         </svg>
                         <span>${c.phone}</span>
+                        <button class="copy-btn" onclick="event.stopPropagation();copyToClipboard('${c.phone}', 'Téléphone copié')">📋</button>
                     </div>
                 ` : ''}
                 ${c.region ? `
@@ -1636,6 +1719,18 @@ function initBackToTopBtn() {
     };
     document.getElementById('sidebar').addEventListener('scroll', checkScroll);
     document.getElementById('contacts-scroll').addEventListener('scroll', checkScroll);
+}
+
+// ══════════════════════════════════════════════
+// COPY TO CLIPBOARD
+// ══════════════════════════════════════════════
+function copyToClipboard(text, message) {
+    navigator.clipboard.writeText(text).then(() => {
+        toast(message || 'Copié !', 'success');
+    }).catch(err => {
+        console.error('Erreur copie:', err);
+        toast('Erreur de copie', 'error');
+    });
 }
 
 // ══════════════════════════════════════════════
