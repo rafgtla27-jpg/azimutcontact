@@ -31,6 +31,17 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+app.get('/api/template', (req, res) => {
+    const templatePath = path.join(__dirname, 'template_contacts.xlsx');
+    if (fs.existsSync(templatePath)) {
+        res.setHeader('Content-Disposition', 'attachment; filename="modele_contacts.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.sendFile(templatePath);
+    } else {
+        res.status(404).json({ error: 'Template non trouvé' });
+    }
+});
+
 app.get('/api/contacts', (req, res) => {
     res.json(contacts);
 });

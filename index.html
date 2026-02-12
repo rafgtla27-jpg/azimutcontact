@@ -381,6 +381,7 @@
         <div class="import-section">
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.75rem; color: var(--text-muted);">IMPORTER DES DONNÉES (.xlsx, .csv)</label>
             <input type="file" id="excel-import" accept=".xlsx, .xls, .csv" onchange="importExcel(this)" style="font-size: 0.75rem;">
+            <a href="/api/template" download="modele_contacts.xlsx" style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#60a5fa;text-decoration:none;border:1px solid #374151;border-radius:6px;padding:4px 10px;background:#1f2937;" onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#1f2937'">📥 Télécharger le modèle Excel</a>
         </div>
 
         <div class="region-filter">
@@ -972,48 +973,160 @@
             }
         }
 
+        function parseScope(scopeStr) {
+            if (!scopeStr) return { scopeRegional: false, scopeNational: false };
+            const s = scopeStr.toString().toLowerCase();
+            return {
+                scopeRegional: s.includes('régional') || s.includes('regional'),
+                scopeNational: s.includes('national')
+            };
+        }
+
+        function showImportProgress(message, current, total) {
+            let bar = document.getElementById('import-progress-bar');
+            if (!bar) {
+                const container = document.createElement('div');
+                container.id = 'import-progress-container';
+                container.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;
+                    background: rgba(0,0,0,0.7); display: flex; align-items: center;
+                    justify-content: center; height: 100%; flex-direction: column; gap: 16px;
+                `;
+                container.innerHTML = `
+                    <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 32px; min-width: 360px; text-align: center;">
+                        <div style="font-size: 1rem; font-weight: 600; color: #f9fafb; margin-bottom: 16px;" id="import-progress-msg"></div>
+                        <div style="background: #374151; border-radius: 9999px; height: 10px; overflow: hidden; margin-bottom: 10px;">
+                            <div id="import-progress-bar" style="background: #3b82f6; height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 9999px;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #9ca3af;" id="import-progress-count"></div>
+                    </div>
+                `;
+                document.body.appendChild(container);
+                bar = document.getElementById('import-progress-bar');
+            }
+            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+            bar.style.width = pct + '%';
+            document.getElementById('import-progress-msg').textContent = message;
+            document.getElementById('import-progress-count').textContent = `${current} / ${total}`;
+        }
+
+        function hideImportProgress() {
+            const el = document.getElementById('import-progress-container');
+            if (el) el.remove();
+        }
+
         async function importExcel(input) {
             const file = input.files[0];
             if (!file) return;
+            // Reset file input so the same file can be re-imported if needed
+            input.value = '';
 
             const reader = new FileReader();
             reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-                alert(`Traitement de ${rows.length} contacts...`);
-
-                for (const row of rows) {
-                    const city = row.city || row.City || row.Ville || '';
-                    const firstName = row.first_name || row['First Name'] || row.Prenom || '';
-                    const lastName = row.last_name || row['Last Name'] || row.Nom || '';
-                    const company = row.Company || row.company || row.Entreprise || '';
-                    const email = row.email || row.Email || '';
-                    const phone = row.phone || row.Phone || row.Telephone || '';
-
-                    if (city && firstName) {
-                        const coords = await geocode(city);
-                        if (coords) {
-                            const region = await findRegion(coords.lat, coords.lon);
-                            contacts.push({
-                                id: Date.now().toString() + Math.random(),
-                                firstName, lastName, email, phone, city, region, company,
-                                scopeRegional: false,
-                                scopeNational: false,
-                                lat: coords.lat, lon: coords.lon, fullName: coords.fullName
-                            });
-                            await new Promise(r => setTimeout(r, 1100)); 
-                        }
+                    if (rows.length === 0) {
+                        alert('Le fichier est vide ou le format est incorrect.');
+                        return;
                     }
-                }
 
-                await fetch('/api/contacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(contacts)
-                });
-                alert('Importation réussie !');
+                    let imported = 0;
+                    let skipped = 0;
+                    const skippedRows = [];
+
+                    showImportProgress('Démarrage de l\'import...', 0, rows.length);
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+
+                        const city      = (row.city       || row.City       || row.Ville      || '').toString().trim();
+                        const firstName = (row.first_name || row['First Name'] || row.Prenom  || '').toString().trim();
+                        const lastName  = (row.last_name  || row['Last Name']  || row.Nom     || '').toString().trim();
+                        const company   = (row.Company    || row.company    || row.Entreprise  || '').toString().trim();
+                        const email     = (row.email      || row.Email      || '').toString().trim();
+                        const phone     = (row.phone      || row.Phone      || row.Telephone   || '').toString().trim();
+                        const regionFromFile = (row.Region || row.region || '').toString().trim();
+                        const deliveryZone   = (row.delivery_zone || row['Delivery Zone'] || '').toString().trim();
+                        const scopeStr       = (row.Scope  || row.scope     || '').toString().trim();
+                        const { scopeRegional, scopeNational } = parseScope(scopeStr);
+
+                        if (!firstName && !city) {
+                            skipped++;
+                            skippedRows.push(`Ligne ${i + 2}: prénom et ville manquants`);
+                            showImportProgress(`Import en cours...`, i + 1, rows.length);
+                            continue;
+                        }
+
+                        showImportProgress(`Géocodage : ${city || '(sans ville)'}...`, i + 1, rows.length);
+
+                        let lat, lon, fullName, region;
+
+                        if (city) {
+                            const coords = await geocode(city);
+                            if (coords) {
+                                lat = coords.lat;
+                                lon = coords.lon;
+                                fullName = coords.fullName;
+                                // Prefer region from geojson layer, fallback to Excel value
+                                region = await findRegion(lat, lon) || regionFromFile;
+                                await new Promise(r => setTimeout(r, 1100));
+                            } else {
+                                // Geocoding failed but we still have region from Excel
+                                region = regionFromFile;
+                            }
+                        } else {
+                            region = regionFromFile;
+                        }
+
+                        contacts.push({
+                            id: Date.now().toString() + Math.random(),
+                            firstName,
+                            lastName,
+                            email,
+                            phone,
+                            city,
+                            region,
+                            company,
+                            deliveryZone,
+                            scopeRegional,
+                            scopeNational,
+                            lat:  lat  || null,
+                            lon:  lon  || null,
+                            fullName: fullName || ''
+                        });
+                        imported++;
+                    }
+
+                    showImportProgress('Sauvegarde...', rows.length, rows.length);
+
+                    await fetch('/api/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(contacts)
+                    });
+
+                    hideImportProgress();
+                    filterData();
+                    updateFilters();
+
+                    let msg = `✅ Import terminé !\n\n• ${imported} contact(s) importé(s)`;
+                    if (skipped > 0) {
+                        msg += `\n• ${skipped} ligne(s) ignorée(s) (prénom et ville manquants)`;
+                    }
+                    if (skippedRows.length > 0 && skippedRows.length <= 5) {
+                        msg += '\n\nDétails :\n' + skippedRows.join('\n');
+                    }
+                    alert(msg);
+
+                } catch (err) {
+                    hideImportProgress();
+                    alert('Erreur lors de l\'import : ' + err.message);
+                    console.error(err);
+                }
             };
             reader.readAsArrayBuffer(file);
         }
