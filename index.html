@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Map | Modern</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --card-bg: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+        }
+
+        body { 
+            margin: 0; 
+            font-family: 'Inter', sans-serif; 
+            display: flex; 
+            height: 100vh; 
+            background: var(--bg); 
+            color: var(--text);
+        }
+
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: var(--sidebar-bg);
+            padding: 40px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        #main-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #sidebar { 
+            width: 380px; 
+            padding: 24px; 
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border); 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+            gap: 24px;
+            box-shadow: 10px 0 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        #map { flex-grow: 1; }
+
+        h2 { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text); }
+
+        .contact-item { 
+            background: rgba(51, 65, 85, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 16px; 
+            margin-bottom: 12px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .contact-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--company-color, var(--primary));
+            transition: width 0.2s ease;
+        }
+        .contact-item:hover {
+            transform: translateX(4px);
+            background: rgba(51, 65, 85, 0.6);
+            border-color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+        .contact-item h3 { margin: 0 0 4px 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+        .contact-item p { margin: 2px 0; font-size: 0.8125rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+
+        .search-container {
+            position: sticky;
+            top: 0;
+            background: var(--sidebar-bg);
+            padding: 4px 0 16px 0;
+            z-index: 5;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input-wrapper input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .search-input-wrapper i {
+            position: absolute;
+            left: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .contact-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.875rem; color: var(--text-muted); }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 10px 12px; 
+            box-sizing: border-box; 
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button { 
+            cursor: pointer; 
+            padding: 10px 16px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        button:hover { background: var(--primary-hover); }
+        
+        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
+        .edit-btn { background: var(--success); }
+        .edit-btn:hover { background: #16a34a; }
+        .delete-btn { background: var(--danger); }
+        .delete-btn:hover { background: #dc2626; }
+
+        .import-section { 
+            margin-top: 8px; 
+            padding: 16px; 
+            border: 2px dashed var(--border); 
+            border-radius: 12px; 
+            text-align: center;
+        }
+
+        .region-filter { 
+            padding: 16px; 
+            background: var(--card-bg); 
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-overlay);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--sidebar-bg);
+            padding: 32px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .close-modal {
+            background: transparent;
+            color: var(--text-muted);
+            width: auto;
+            padding: 0;
+            font-size: 1.5rem;
+        }
+        .close-modal:hover { background: transparent; color: var(--text); }
+
+        /* Leaflet Dark Mode Customization */
+        .leaflet-container {
+            background: #111827 !important;
+        }
+        .leaflet-popup-content-wrapper {
+            background: var(--sidebar-bg);
+            color: var(--text);
+            border-radius: 12px;
+        }
+        .leaflet-popup-tip { background: var(--sidebar-bg); }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-bottom: 24px; text-align: center;">Connexion</h2>
+            <div class="form-group">
+                <label>Nom d'utilisateur</label>
+                <input type="text" id="login-username">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="login-password">
+            </div>
+            <button onclick="login()">Se connecter</button>
+            <p id="login-error" style="color: var(--danger); margin-top: 16px; display: none; text-align: center; font-size: 0.875rem;"></p>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none; width: 100%; height: 100%; display: flex;">
+        <div id="sidebar">
+        <button onclick="openModal()" style="margin-bottom: 20px;">+ Ajouter un contact</button>
+
+        <div class="import-section">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.75rem; color: var(--text-muted);">IMPORTER DES DONNÉES (.xlsx, .csv)</label>
+            <input type="file" id="excel-import" accept=".xlsx, .xls, .csv" onchange="importExcel(this)" style="font-size: 0.75rem;">
+        </div>
+
+        <div class="region-filter">
+            <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.875rem;">Filtres</label>
+            <div class="filter-group">
+                <label>Par Région</label>
+                <select id="region-select" onchange="filterData()">
+                    <option value="all">Toutes les régions</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Par Entreprise</label>
+                <select id="company-select" onchange="filterData()">
+                    <option value="all">Toutes les entreprises</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="contact-list">
+            <div class="search-container">
+                <div class="contact-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="total-contacts">0</span>
+                        <span class="stat-label">Contacts</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="total-cities">0</span>
+                        <span class="stat-label">Villes</span>
+                    </div>
+                </div>
+                <div class="search-input-wrapper" style="margin-bottom: 12px;">
+                    <span style="position: absolute; left: 12px; color: var(--text-muted);">🔍</span>
+                    <input type="text" id="contact-search" placeholder="Rechercher un nom, ville, entreprise..." oninput="filterData()">
+                </div>
+                <button onclick="copyAllEmails()" style="background: var(--card-bg); color: var(--text-muted); font-size: 0.75rem; padding: 6px; border: 1px solid var(--border);">📋 Copier tous les emails</button>
+            </div>
+            <div id="contacts"></div>
+        </div>
+    </div>
+    
+    <div id="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Nouveau Contact</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="add-contact-form">
+                <input type="hidden" id="edit-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="first_name" placeholder="Jean">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="last_name" placeholder="Dupont">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" placeholder="jean@exemple.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="phone" placeholder="06 00 00 00 00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ville</label>
+                    <input type="text" id="city" placeholder="Paris, France">
+                </div>
+                <div class="form-group">
+                    <label>Région</label>
+                    <input type="text" id="region" placeholder="Déterminée automatiquement" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Entreprise</label>
+                    <input type="text" id="company" placeholder="ACME Inc.">
+                </div>
+                <button id="save-btn" onclick="saveContact()">Enregistrer le contact</button>
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const socket = io();
+        const map = L.map('map', { zoomControl: false }).setView([46.2276, 2.2137], 6);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://osmfr.org">OpenStreetMap France</a>',
+            maxZoom: 20
+        }).addTo(map);
+
+        let contacts = [];
+        let markers = {};
+        let currentRegion = 'all';
+        let currentCompany = 'all';
+        let regionLayer, deptLayer, currentDeptDisplay;
+        let companyColors = {};
+
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const error = document.getElementById('login-error');
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'flex';
+                    await loadContacts();
+                    map.invalidateSize();
+                } else {
+                    error.innerText = data.message;
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                error.innerText = "Erreur de connexion";
+                error.style.display = 'block';
+            }
+        }
+
+        async function loadContacts() {
+            const res = await fetch('/api/contacts');
+            contacts = await res.json();
+            refreshUI();
+        }
+
+        function refreshUI() {
+            updateFilters();
+            filterData();
+        }
+
+        socket.on('contactsUpdated', (newContacts) => {
+            contacts = newContacts;
+            refreshUI();
+        });
+
+        const colors = [
+            '#6366f1', '#ef4444', '#10b981', '#f59e0b', '#3b82f6', 
+            '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'
+        ];
+
+        function getCompanyColor(company) {
+            if (!company) return '#6366f1';
+            if (!companyColors[company]) {
+                const colorIndex = Object.keys(companyColors).length % colors.length;
+                companyColors[company] = colors[colorIndex];
+            }
+            return companyColors[company];
+        }
+
+        async function init() {
+            updateFilters();
+            filterData();
+            await loadRegions();
+            await loadDepts();
+        }
+
+        async function loadRegions() {
+            try {
+                const res = await fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions-version-simplifiee.geojson');
+                const data = await res.json();
+                
+                regionLayer = L.geoJSON(data, {
+                    style: (feature) => ({
+                        fillColor: '#6366f1',
+                        weight: 2,
+                        opacity: 1,
+                        color: '#475569',
+                        fillOpacity: 0.1
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        layer.on({
+                            mouseover: (e) => {
+                                if (map.getZoom() < 8) e.target.setStyle({ fillOpacity: 0.4 });
+                            },
+                            mouseout: (e) => {
+                                if (map.getZoom() < 8 && e.target.feature.properties.nom !== currentRegion) {
+                                    e.target.setStyle({ fillOpacity: 0.1 });
+                                }
+                            },
+                            click: (e) => {
+                                currentRegion = feature.properties.nom;
+                                document.getElementById('region-select').value = currentRegion;
+                                map.fitBounds(e.target.getBounds());
+                                filterData();
+                                showDepts(feature.properties.code);
+                            }
+                        });
+                    }
+                }).addTo(map);
+            } catch (err) {
+                console.error('Failed to load regions:', err);
+            }
+        }
+
+        async function loadDepts() {
+            try {
+                const res = await fetch('departements.geojson');
+                const data = await res.json();
+                deptLayer = L.geoJSON(data);
+            } catch (err) {
+                console.error('Failed to load depts:', err);
+            }
+        }
+
+        function showDepts(regionCode) {
+            if (!deptLayer) return;
+            if (currentDeptDisplay) map.removeLayer(currentDeptDisplay);
+
+            const regionToDepts = {
+                '11': ['75','77','78','91','92','93','94','95'],
+                '24': ['18','28','36','37','41','45'],
+                '27': ['21','25','39','58','70','71','89','90'],
+                '28': ['14','27','50','61','76'],
+                '32': ['02','59','60','62','80'],
+                '44': ['08','10','51','52','54','55','57','67','68','88'],
+                '52': ['44','49','53','72','85'],
+                '53': ['22','29','35','56'],
+                '75': ['16','17','19','23','24','33','40','47','64','79','86','87'],
+                '76': ['09','11','12','30','31','32','34','46','48','65','66','81','82'],
+                '84': ['01','03','07','15','26','38','42','43','63','69','73','74'],
+                '93': ['04','05','06','13','83','84'],
+                '94': ['2A','2B']
+            };
+
+            const targetDepts = regionToDepts[regionCode] || [];
+            const filteredFeatures = deptLayer.toGeoJSON().features.filter(f => targetDepts.includes(f.properties.code));
+            
+            currentDeptDisplay = L.geoJSON(filteredFeatures, {
+                style: { fillColor: '#10b981', weight: 1.5, opacity: 1, color: '#fff', fillOpacity: 0.2 },
+                onEachFeature: (feature, layer) => {
+                    layer.bindTooltip(feature.properties.nom);
+                    layer.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        map.fitBounds(e.target.getBounds());
+                    });
+                }
+            }).addTo(map);
+        }
+
+        function updateFilters() {
+            const regionSelect = document.getElementById('region-select');
+            const companySelect = document.getElementById('company-select');
+            
+            const regions = [...new Set(contacts.map(c => c.region))].filter(Boolean).sort();
+            const companies = [...new Set(contacts.map(c => c.company))].filter(Boolean).sort();
+            
+            regionSelect.innerHTML = '<option value="all">Toutes les régions</option>';
+            regions.forEach(r => regionSelect.add(new Option(r, r)));
+            
+            companySelect.innerHTML = '<option value="all">Toutes les entreprises</option>';
+            companies.forEach(c => companySelect.add(new Option(c, c)));
+
+            regionSelect.value = currentRegion;
+            companySelect.value = currentCompany;
+        }
+
+        function filterData() {
+            currentRegion = document.getElementById('region-select').value;
+            currentCompany = document.getElementById('company-select').value;
+            const searchTerm = (document.getElementById('contact-search')?.value || '').toLowerCase();
+            
+            Object.values(markers).forEach(m => map.removeLayer(m));
+            markers = {};
+            
+            const filtered = contacts.filter(c => {
+                const matchRegion = currentRegion === 'all' || c.region === currentRegion;
+                const matchCompany = currentCompany === 'all' || c.company === currentCompany;
+                const matchSearch = !searchTerm || 
+                    (c.firstName + ' ' + (c.lastName || '')).toLowerCase().includes(searchTerm) ||
+                    (c.city || '').toLowerCase().includes(searchTerm) ||
+                    (c.company || '').toLowerCase().includes(searchTerm) ||
+                    (c.email || '').toLowerCase().includes(searchTerm);
+                return matchRegion && matchCompany && matchSearch;
+            });
+
+            renderContacts(filtered);
+            filtered.forEach(addMarkerToMap);
+            
+            if (regionLayer) {
+                regionLayer.eachLayer(l => {
+                    l.setStyle({ fillOpacity: (l.feature.properties.nom === currentRegion ? 0.4 : 0.1) });
+                });
+            }
+
+            const totalContactsEl = document.getElementById('total-contacts');
+            const totalCitiesEl = document.getElementById('total-cities');
+            if (totalContactsEl) totalContactsEl.innerText = filtered.length;
+            if (totalCitiesEl) totalCitiesEl.innerText = new Set(filtered.map(c => c.city)).size;
+        }
+
+        async function findRegion(lat, lon) {
+            if (!regionLayer) return '';
+            let found = '';
+            regionLayer.eachLayer(layer => {
+                if (layer.getBounds().contains([lat, lon])) {
+                    found = layer.feature.properties.nom;
+                }
+            });
+            return found;
+        }
+
+        document.getElementById('city').addEventListener('blur', async (e) => {
+            const city = e.target.value;
+            if (!city) return;
+            
+            const regionInput = document.getElementById('region');
+            regionInput.placeholder = 'Recherche...';
+            
+            const coords = await geocode(city);
+            if (coords) {
+                const region = await findRegion(coords.lat, coords.lon);
+                regionInput.value = region;
+            }
+            regionInput.placeholder = 'Déterminée automatiquement';
+        });
+
+        async function geocode(city) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&accept-language=fr`, {
+                    headers: { 'User-Agent': 'ContactMapApp/1.0' }
+                });
+                const data = await response.json();
+                if (data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+            }
+            return null;
+        }
+
+        async function saveContact() {
+            const saveBtn = document.getElementById('save-btn');
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = 'Localisation...';
+            saveBtn.disabled = true;
+
+            try {
+                const id = document.getElementById('edit-id').value;
+                const firstName = document.getElementById('first_name').value;
+                const lastName = document.getElementById('last_name').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
+                const city = document.getElementById('city').value;
+                const company = document.getElementById('company').value;
+
+                if (!firstName || !city) throw new Error('Le prénom et la ville sont obligatoires');
+
+                const coords = await geocode(city);
+                if (!coords) throw new Error('Ville non trouvée');
+
+                const region = await findRegion(coords.lat, coords.lon);
+
+                const contactData = { 
+                    id: id || Date.now().toString(), 
+                    firstName, lastName, email, phone, city, region, company,
+                    lat: coords.lat, lon: coords.lon, fullName: coords.fullName 
+                };
+
+                if (id) {
+                    const index = contacts.findIndex(c => c.id === id);
+                    contacts[index] = contactData;
+                } else {
+                    contacts.push(contactData);
+                }
+
+                await fetch('/api/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(contacts)
+                });
+
+                resetForm();
+                closeModal();
+                map.setView([contactData.lat, contactData.lon], 12);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                saveBtn.innerText = id ? 'Mettre à jour' : 'Enregistrer le contact';
+                saveBtn.disabled = false;
+            }
+        }
+
+        function addMarkerToMap(contact) {
+            const matchRegion = currentRegion === 'all' || contact.region === currentRegion;
+            const matchCompany = currentCompany === 'all' || contact.company === currentCompany;
+            if (!matchRegion || !matchCompany) return;
+
+            const color = getCompanyColor(contact.company);
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            const marker = L.marker([contact.lat, contact.lon], { icon }).addTo(map)
+                .bindPopup(`
+                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
+                        <b style="font-size: 1rem;">${contact.firstName} ${contact.lastName || ''}</b><br>
+                        <span style="color: ${color}; font-weight: 600; font-size: 0.8rem;">${contact.company || 'Privé'}</span><br>
+                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 8px 0;">
+                        ${contact.email ? `<p style="margin: 4px 0; font-size: 0.875rem;">📧 ${contact.email}</p>` : ''}
+                        ${contact.phone ? `<p style="margin: 4px 0; font-size: 0.875rem;">📞 ${contact.phone}</p>` : ''}
+                        <p style="margin: 4px 0; font-size: 0.875rem;">📍 ${contact.city}</p>
+                        <p style="margin: 4px 0; font-size: 0.75rem; color: var(--text-muted);">🗺️ ${contact.region || 'N/A'}</p>
+                    </div>
+                `);
+            markers[contact.id] = marker;
+        }
+
+        function renderContacts(filtered = null) {
+            const container = document.getElementById('contacts');
+            container.innerHTML = '';
+            
+            if (!filtered) {
+                const searchTerm = (document.getElementById('contact-search')?.value || '').toLowerCase();
+                filtered = contacts.filter(c => {
+                    const matchRegion = currentRegion === 'all' || c.region === currentRegion;
+                    const matchCompany = currentCompany === 'all' || c.company === currentCompany;
+                    const matchSearch = !searchTerm || 
+                        (c.firstName + ' ' + (c.lastName || '')).toLowerCase().includes(searchTerm) ||
+                        (c.city || '').toLowerCase().includes(searchTerm) ||
+                        (c.company || '').toLowerCase().includes(searchTerm);
+                    return matchRegion && matchCompany && matchSearch;
+                });
+            }
+
+            filtered.forEach(contact => {
+                const color = getCompanyColor(contact.company);
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.style.setProperty('--company-color', color);
+                div.innerHTML = `
+                    <div style="padding-left: 8px;">
+                        <h3>${contact.firstName} ${contact.lastName || ''}</h3>
+                        <p style="color: ${color}; font-weight: 600;">🏢 ${contact.company || 'Privé'}</p>
+                        ${contact.email ? `<p>📧 ${contact.email}</p>` : ''}
+                        <p>📍 ${contact.city}</p>
+                        <div class="action-btns">
+                            <button class="edit-btn" onclick="editContact('${contact.id}')">Modifier</button>
+                            <button class="delete-btn" onclick="deleteContact('${contact.id}')">Supprimer</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function copyAllEmails() {
+            const emails = contacts.map(c => c.email).filter(Boolean).join('; ');
+            if (!emails) return alert('Aucun email trouvé');
+            navigator.clipboard.writeText(emails);
+            alert('Tous les emails ont été copiés dans le presse-papier !');
+        }
+
+        function editContact(id) {
+            const contact = contacts.find(c => c.id === id);
+            document.getElementById('edit-id').value = contact.id;
+            document.getElementById('first_name').value = contact.firstName;
+            document.getElementById('last_name').value = contact.lastName;
+            document.getElementById('email').value = contact.email || '';
+            document.getElementById('phone').value = contact.phone || '';
+            document.getElementById('city').value = contact.city;
+            document.getElementById('region').value = contact.region || '';
+            document.getElementById('company').value = contact.company || '';
+            document.getElementById('modal-title').innerText = 'Modifier le contact';
+            document.getElementById('save-btn').innerText = 'Mettre à jour';
+            openModal();
+        }
+
+        function openModal() {
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            resetForm();
+        }
+
+        async function deleteContact(id) {
+            if (confirm('Supprimer ce contact ?')) {
+                contacts = contacts.filter(c => c.id !== id);
+                await fetch('/api/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(contacts)
+                });
+            }
+        }
+
+        async function importExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+                alert(`Traitement de ${rows.length} contacts...`);
+
+                for (const row of rows) {
+                    const city = row.city || row.City || row.Ville || '';
+                    const firstName = row.first_name || row['First Name'] || row.Prenom || '';
+                    const lastName = row.last_name || row['Last Name'] || row.Nom || '';
+                    const company = row.Company || row.company || row.Entreprise || '';
+                    const email = row.email || row.Email || '';
+                    const phone = row.phone || row.Phone || row.Telephone || '';
+
+                    if (city && firstName) {
+                        const coords = await geocode(city);
+                        if (coords) {
+                            const region = await findRegion(coords.lat, coords.lon);
+                            contacts.push({
+                                id: Date.now().toString() + Math.random(),
+                                firstName, lastName, email, phone, city, region, company,
+                                lat: coords.lat, lon: coords.lon, fullName: coords.fullName
+                            });
+                            await new Promise(r => setTimeout(r, 1100)); 
+                        }
+                    }
+                }
+
+                await fetch('/api/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(contacts)
+                });
+                alert('Importation réussie !');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('first_name').value = '';
+            document.getElementById('last_name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('city').value = '';
+            document.getElementById('region').value = '';
+            document.getElementById('company').value = '';
+            document.getElementById('modal-title').innerText = 'Nouveau Contact';
+            document.getElementById('save-btn').innerText = 'Enregistrer le contact';
+        }
+
+        init();
+    </script>
+</body>
+</html>
