@@ -826,13 +826,16 @@
 
     <!-- MAP -->
     <div id="map">
-        <!-- Zone Overlay Controls -->
-        <div class="zone-overlay-controls" id="zone-overlay-controls" style="display:none;">
-            <div style="font-size:0.75rem;font-weight:600;margin-bottom:8px;color:var(--text);">
-                🗺️ Zones de livraison
-            </div>
-            <div id="zone-checkboxes"></div>
-        </div>
+        <!-- Bouton reset vue France -->
+        <button onclick="resetMapView()" title="Vue France complète"
+            style="position:absolute;top:80px;right:10px;z-index:1000;
+                   background:var(--sidebar-bg);border:1px solid var(--border);
+                   color:var(--text);border-radius:8px;padding:7px 10px;
+                   font-size:0.75rem;font-weight:600;width:auto;
+                   box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;
+                   display:flex;align-items:center;gap:5px;">
+            🇫🇷 France
+        </button>
     </div>
 
     <!-- CONTACT LIST RIGHT -->
@@ -995,7 +998,6 @@ let markerLayerGroup = L.layerGroup().addTo(map);
 let currentRegion = 'all', currentCompany = 'all', currentScope = 'all', currentDeliveryZone = 'all';
 let regionLayer, deptLayer, currentDeptDisplay;
 let companyColors = {};
-let deliveryZoneOverlays = {};
 let sortMode = 'name';
 let currentFiltered = [];
 let cityLookupTimer = null;
@@ -1194,11 +1196,15 @@ function resetFilters() {
     document.getElementById('scope-select').value = 'all';
     document.getElementById('delivery-zone-select').value = 'all';
     document.getElementById('contact-search').value = '';
-    map.setView([46.2276, 2.2137], 6);
-    if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
-    if (regionLayer) regionLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1 }));
+    resetMapView();
     filterData();
     toast('Filtres réinitialisés');
+}
+
+function resetMapView() {
+    map.setView([46.2276, 2.2137], 6, { animate: true });
+    if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
+    if (regionLayer) regionLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.08 }));
 }
 
 async function filterData() {
@@ -1263,8 +1269,6 @@ async function filterData() {
     if (totalEl) totalEl.textContent = filtered.length;
     if (cityEl)  cityEl.textContent  = new Set(filtered.map(c => c.city).filter(Boolean)).size;
     
-    // Mettre à jour les zones de livraison
-    updateDeliveryZoneOverlays();
 }
 
 // ══════════════════════════════════════════════
@@ -1684,83 +1688,6 @@ function toggleNoLocationList() {
     list.classList.toggle('expanded');
 }
 
-// ══════════════════════════════════════════════
-// DELIVERY ZONE OVERLAYS
-// ══════════════════════════════════════════════
-function updateDeliveryZoneOverlays() {
-    const controls = document.getElementById('zone-overlay-controls');
-    const checkboxes = document.getElementById('zone-checkboxes');
-    
-    // Obtenir toutes les zones de livraison uniques
-    const zones = [...new Set(contacts.map(c => c.deliveryZone).filter(Boolean))].sort();
-    
-    if (zones.length === 0) {
-        controls.style.display = 'none';
-        return;
-    }
-    
-    controls.style.display = 'block';
-    
-    // Créer les checkboxes pour chaque zone
-    checkboxes.innerHTML = zones.map((zone, idx) => {
-        const zoneColor = COLORS[idx % COLORS.length];
-        return `
-            <div class="zone-toggle">
-                <input type="checkbox" id="zone-${idx}" 
-                       onchange="toggleZoneOverlay('${zone}', this.checked, '${zoneColor}')">
-                <label for="zone-${idx}" style="color:${zoneColor};">
-                    <span style="display:inline-block;width:12px;height:12px;background:${zoneColor};border-radius:2px;margin-right:4px;"></span>
-                    ${zone}
-                </label>
-            </div>
-        `;
-    }).join('');
-}
-
-async function toggleZoneOverlay(zoneName, show, color) {
-    // Supprimer l'overlay existant si présent
-    if (deliveryZoneOverlays[zoneName]) {
-        map.removeLayer(deliveryZoneOverlays[zoneName]);
-        delete deliveryZoneOverlays[zoneName];
-    }
-    
-    if (!show) return;
-    
-    // Obtenir les régions stockées dans deliveryZoneRegions du premier contact avec cette zone
-    const contactsInZone = contacts.filter(c => c.deliveryZone === zoneName);
-    if (contactsInZone.length === 0) return;
-    
-    // Récupérer les régions de la zone depuis le premier contact (tous ont la même config)
-    const zoneRegions = contactsInZone[0].deliveryZoneRegions || [];
-    
-    if (!regionLayer || zoneRegions.length === 0) return;
-    
-    // Créer un overlay pour les régions de cette zone
-    const features = [];
-    regionLayer.eachLayer(layer => {
-        if (zoneRegions.includes(layer.feature.properties.nom)) {
-            features.push(layer.feature);
-        }
-    });
-    
-    if (features.length > 0) {
-        const overlay = L.geoJSON(features, {
-            style: {
-                fillColor: color,
-                weight: 2,
-                color: color,
-                fillOpacity: 0.3,
-                opacity: 0.9
-            }
-        }).addTo(map);
-        
-        overlay.bindTooltip(`Zone: ${zoneName} (${zoneRegions.length} région${zoneRegions.length > 1 ? 's' : ''})`, { 
-            permanent: false, 
-            sticky: true 
-        });
-        deliveryZoneOverlays[zoneName] = overlay;
-    }
-}
 
 // ══════════════════════════════════════════════
 // SAVE / EDIT / DELETE
