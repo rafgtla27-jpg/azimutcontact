@@ -1853,31 +1853,29 @@ function renderContacts(filtered) {
             ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
             <p>${locationDisplay}</p>
             <div class="contact-actions">
-                <button class="btn-sm btn-success" data-action="edit">✏️ Modifier</button>
-                <button class="btn-sm btn-danger" data-action="delete">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" data-action="focus">🗺</button>` : ''}
+                <button class="btn-sm btn-success" data-cid="${contact.id}" data-action="edit">✏️ Modifier</button>
+                <button class="btn-sm btn-danger"  data-cid="${contact.id}" data-action="delete">🗑 Supprimer</button>
+                ${contact.lat != null ? `<button class="btn-sm btn-ghost" data-cid="${contact.id}" data-action="focus">🗺</button>` : ''}
             </div>
         `;
 
-        // Single click → focus map
         div.addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-action]');
+            const btn = e.target.closest('button[data-action][data-cid]');
             if (btn) {
                 e.stopPropagation();
-                const action = btn.dataset.action;
-                if (action === 'edit')   editContact(contact.id);
-                if (action === 'delete') deleteContact(contact.id);
-                if (action === 'focus')  focusOnMap(contact.id);
+                const id  = btn.dataset.cid;
+                const act = btn.dataset.action;
+                if (act === 'edit')   editContact(id);
+                if (act === 'delete') deleteContact(id);
+                if (act === 'focus')  focusOnMap(id);
                 return;
             }
             if (contact.lat != null) focusOnMap(contact.id);
-            // Highlight zone de livraison sur la carte
             if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0) {
                 highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
             }
         });
 
-        // Double click → fiche contact détaillée
         div.addEventListener('dblclick', (e) => {
             e.stopPropagation();
             showContactInfo(contact);
