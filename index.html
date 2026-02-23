@@ -243,10 +243,7 @@
             display: flex;
             gap: 6px;
             margin-top: 8px;
-            opacity: 0;
-            transition: opacity 0.2s;
         }
-        .contact-item:hover .contact-actions { opacity: 1; }
 
         /* ── BADGES ── */
         .scope-badge {
@@ -410,6 +407,79 @@
             from { opacity: 1; transform: translateX(0); }
             to   { opacity: 0; transform: translateX(20px); }
         }
+
+        /* ── DB TABLE VIEW ── */
+        #db-panel {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+        }
+        #db-panel.open { display: flex; }
+        .db-toolbar {
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .db-toolbar h2 { margin: 0; font-size: 1rem; font-weight: 700; flex: 1; }
+        #db-search { width: 220px; padding: 7px 12px; font-size: 0.8rem; }
+        .db-table-wrap { flex: 1; overflow: auto; padding: 12px; }
+        table.db-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+        table.db-table th {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        table.db-table th:hover { color: var(--text); }
+        table.db-table th.sort-asc::after { content: ' ↑'; }
+        table.db-table th.sort-desc::after { content: ' ↓'; }
+        table.db-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        table.db-table tr:hover td { background: var(--card-hover); }
+        table.db-table td input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            width: 100%;
+            min-width: 80px;
+        }
+        table.db-table td input:focus {
+            background: var(--card-bg);
+            border-color: var(--primary);
+            outline: none;
+        }
+        .db-row-actions { display: flex; gap: 5px; white-space: nowrap; }
 
         /* ── BACK TO TOP ── */
         #back-top-btn {
@@ -745,7 +815,10 @@
     <!-- SIDEBAR LEFT -->
     <div id="sidebar">
         <div class="sidebar-header">
-            <h1>📍 Contact Map</h1>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <h1 style="margin:0 0 2px;">📍 Contact Map</h1>
+                <button onclick="openDbPanel()" style="width:auto;padding:5px 10px;font-size:0.7rem;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;" title="Gérer la base de données">🗄️ DB</button>
+            </div>
             <p id="sidebar-subtitle">Chargement...</p>
         </div>
 
@@ -767,10 +840,12 @@
                onmouseover="this.style.borderColor='#60a5fa'" onmouseout="this.style.borderColor='var(--border)'">
                 📥 Télécharger le modèle Excel
             </a>
-            <button class="btn-ghost" style="margin-top:8px;font-size:0.75rem;padding:7px;"
-                    onclick="exportContacts()">
-                📤 Exporter les contacts (.xlsx)
-            </button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+                <button class="btn-ghost" style="font-size:0.72rem;padding:7px;"
+                        onclick="exportContacts('xlsx')">📤 .xlsx</button>
+                <button class="btn-ghost" style="font-size:0.72rem;padding:7px;"
+                        onclick="exportContacts('csv')">📤 .csv</button>
+            </div>
         </div>
 
         <div class="sidebar-section">
@@ -873,6 +948,22 @@
         <div id="contacts-scroll">
             <div id="contacts"></div>
         </div>
+    </div>
+</div>
+
+<!-- DB PANEL -->
+<div id="db-panel">
+    <div class="db-toolbar">
+        <h2>🗄️ Gestion de la base</h2>
+        <input id="db-search" class="db-search-input" type="text" placeholder="Filtrer..." oninput="renderDbTable()">
+        <button onclick="dbSaveAll()" style="width:auto;padding:8px 16px;font-size:0.8rem;background:var(--success);">💾 Sauvegarder</button>
+        <button onclick="closeDbPanel()" style="width:auto;padding:8px 14px;font-size:0.8rem;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);">✕ Fermer</button>
+    </div>
+    <div class="db-table-wrap">
+        <table class="db-table" id="db-table">
+            <thead id="db-thead"></thead>
+            <tbody id="db-tbody"></tbody>
+        </table>
     </div>
 </div>
 
@@ -2111,10 +2202,12 @@ function copyFilteredEmails() {
 // ══════════════════════════════════════════════
 // EXPORT EXCEL
 // ══════════════════════════════════════════════
-function exportContacts() {
+function exportContacts(format = 'xlsx') {
     if (!contacts.length) { toast('Aucun contact à exporter', 'warning'); return; }
+    const date = new Date().toISOString().slice(0, 10);
     const rows = contacts.map(c => ({
         Region: c.region || '',
+        Departements_zone: (c.deliveryZoneRegions || []).join(', '),
         delivery_zone: c.deliveryZone || '',
         city: c.city || '',
         Company: c.company || '',
@@ -2124,11 +2217,22 @@ function exportContacts() {
         phone: c.phone || '',
         email: c.email || ''
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-    XLSX.writeFile(wb, `contacts_azimut_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast(`${contacts.length} contacts exportés ✓`);
+    if (format === 'csv') {
+        const headers = Object.keys(rows[0]);
+        const csv = [headers.join(';'), ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(';'))].join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `contacts_azimut_${date}.csv`;
+        a.click();
+        toast(`${contacts.length} contacts exportés en CSV ✓`);
+    } else {
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+        XLSX.writeFile(wb, `contacts_azimut_${date}.xlsx`);
+        toast(`${contacts.length} contacts exportés en Excel ✓`);
+    }
 }
 
 // ══════════════════════════════════════════════
@@ -2330,6 +2434,148 @@ async function importExcel(input) {
         }
     };
     reader.readAsArrayBuffer(file);
+}
+
+// ══════════════════════════════════════════════
+// DB PANEL
+// ══════════════════════════════════════════════
+const DB_COLS = [
+    { key: 'firstName',   label: 'Prénom' },
+    { key: 'lastName',    label: 'Nom' },
+    { key: 'email',       label: 'Email' },
+    { key: 'phone',       label: 'Téléphone' },
+    { key: 'company',     label: 'Entreprise' },
+    { key: 'city',        label: 'Ville' },
+    { key: 'region',      label: 'Région' },
+    { key: 'deliveryZone',label: 'Zone livraison' },
+    { key: 'scopeRegional', label: 'Régional', type: 'bool' },
+    { key: 'scopeNational', label: 'National',  type: 'bool' },
+];
+
+let dbSortCol = 'firstName';
+let dbSortDir = 1;
+let dbEdited = {};
+
+function openDbPanel() {
+    dbEdited = {};
+    document.getElementById('db-search').value = '';
+    document.getElementById('db-panel').classList.add('open');
+    renderDbTable();
+}
+
+function closeDbPanel() {
+    if (Object.keys(dbEdited).length > 0) {
+        if (!confirm('Modifications non sauvegardées. Fermer quand même ?')) return;
+    }
+    document.getElementById('db-panel').classList.remove('open');
+}
+
+function renderDbTable() {
+    const q = (document.getElementById('db-search').value || '').toLowerCase();
+    let rows = contacts.filter(c => {
+        if (!q) return true;
+        return DB_COLS.some(col => (String(c[col.key] || '')).toLowerCase().includes(q));
+    });
+    rows = [...rows].sort((a, b) => {
+        const va = String(a[dbSortCol] || '').toLowerCase();
+        const vb = String(b[dbSortCol] || '').toLowerCase();
+        return va.localeCompare(vb, 'fr') * dbSortDir;
+    });
+
+    const thead = document.getElementById('db-thead');
+    thead.innerHTML = '<tr>' + DB_COLS.map(col => {
+        const cls = col.key === dbSortCol ? (dbSortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
+        return `<th class="${cls}" onclick="dbSetSort('${col.key}')">${col.label}</th>`;
+    }).join('') + '<th>Actions</th></tr>';
+
+    const tbody = document.getElementById('db-tbody');
+    tbody.innerHTML = '';
+    rows.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = DB_COLS.map(col => {
+            if (col.type === 'bool') {
+                return `<td style="text-align:center;">
+                    <input type="checkbox" ${c[col.key] ? 'checked' : ''}
+                        style="width:auto;cursor:pointer;accent-color:var(--primary);"
+                        onchange="dbEditBool('${c.id}','${col.key}',this.checked)">
+                </td>`;
+            }
+            const val = (c[col.key] || '').toString().replace(/"/g, '&quot;');
+            return `<td title="${val}">
+                <input type="text" value="${val}"
+                    onchange="dbEdit('${c.id}','${col.key}',this.value)"
+                    onblur="dbEdit('${c.id}','${col.key}',this.value)">
+            </td>`;
+        }).join('');
+        tr.innerHTML += `<td>
+            <div class="db-row-actions">
+                <button onclick="dbSaveRow('${c.id}')" class="btn-sm btn-success" style="font-size:0.68rem;padding:3px 8px;">💾</button>
+                <button onclick="deleteContact('${c.id}')" class="btn-sm btn-danger" style="font-size:0.68rem;padding:3px 8px;">🗑</button>
+            </div>
+        </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function dbSetSort(col) {
+    if (dbSortCol === col) { dbSortDir *= -1; } else { dbSortCol = col; dbSortDir = 1; }
+    renderDbTable();
+}
+
+function dbEdit(id, key, value) {
+    if (!dbEdited[id]) dbEdited[id] = {};
+    dbEdited[id][key] = value;
+}
+
+function dbEditBool(id, key, value) {
+    if (!dbEdited[id]) dbEdited[id] = {};
+    dbEdited[id][key] = value;
+}
+
+async function dbSaveRow(id) {
+    const edits = dbEdited[id];
+    if (!edits) { toast('Aucune modification sur ce contact', 'warning'); return; }
+    const idx = contacts.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    contacts[idx] = { ...contacts[idx], ...edits };
+    // Regéocoder si la ville a changé
+    if (edits.city && edits.city !== contacts[idx].city) {
+        const coords = await geocode(edits.city);
+        if (coords) {
+            contacts[idx].lat = coords.lat;
+            contacts[idx].lon = coords.lon;
+            contacts[idx].fullName = coords.fullName;
+            contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
+        }
+    }
+    delete dbEdited[id];
+    await saveToServer();
+    refreshUI();
+    renderDbTable();
+    toast('Contact sauvegardé ✓');
+}
+
+async function dbSaveAll() {
+    if (Object.keys(dbEdited).length === 0) { toast('Aucune modification en attente', 'warning'); return; }
+    for (const [id, edits] of Object.entries(dbEdited)) {
+        const idx = contacts.findIndex(c => c.id === id);
+        if (idx < 0) continue;
+        contacts[idx] = { ...contacts[idx], ...edits };
+        if (edits.city) {
+            const coords = await geocode(edits.city);
+            if (coords) {
+                contacts[idx].lat = coords.lat;
+                contacts[idx].lon = coords.lon;
+                contacts[idx].fullName = coords.fullName;
+                contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
+            }
+        }
+    }
+    dbEdited = {};
+    await saveToServer();
+    refreshUI();
+    renderDbTable();
+    toast(`Base sauvegardée ✓`);
 }
 
 // ══════════════════════════════════════════════
