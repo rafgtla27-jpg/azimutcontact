@@ -468,6 +468,16 @@
             vertical-align: middle;
         }
 
+        /* ── CUSTOM DIV ICON - no black square ── */
+        .custom-div-icon {
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .custom-div-icon:focus { outline: none !important; }
+        .leaflet-interactive:focus { outline: none !important; }
+
         /* ── MARKER CLUSTERS ── */
         .marker-cluster {
             background-color: rgba(99, 102, 241, 0.6);
@@ -1236,14 +1246,15 @@ async function filterData() {
     filtered = sortContacts(filtered);
     currentFiltered = filtered;
 
-    // Séparer les contacts avec et sans localisation
-    const withLocation = filtered.filter(c => c.lat != null && c.lon != null);
-    const withoutLocation = filtered.filter(c => c.lat == null || c.lon == null);
+    // Séparer : coords connues / région seulement / sans rien
+    const withLocation    = filtered.filter(c => c.lat != null && c.lon != null);
+    const regionOnly      = filtered.filter(c => (c.lat == null || c.lon == null) && c.region);
+    const withoutLocation = filtered.filter(c => (c.lat == null || c.lon == null) && !c.region);
 
     renderContacts(filtered);
     renderNoLocationContacts(withoutLocation);
-    
-    // Groupement par ville : cluster si plusieurs contacts, marqueur normal sinon
+
+    // Marqueurs contacts avec coordonnées (groupement par ville)
     const byCity = {};
     for (const c of withLocation) {
         const key = c.city ? c.city.toLowerCase().trim() : c.lat + '_' + c.lon;
@@ -1256,6 +1267,17 @@ async function filterData() {
         } else {
             addCityClusterMarker(group);
         }
+    }
+
+    // Marqueurs flottants pour contacts région-seulement (groupés par région)
+    const byRegion = {};
+    for (const c of regionOnly) {
+        const key = (c.region || '').toLowerCase().trim();
+        if (!byRegion[key]) byRegion[key] = [];
+        byRegion[key].push(c);
+    }
+    for (const group of Object.values(byRegion)) {
+        await addRegionFloatingMarker(group);
     }
 
     if (regionLayer) {
@@ -1337,7 +1359,7 @@ function showDepts(regionCode) {
     const features = deptLayer.toGeoJSON().features.filter(f => depts.includes(f.properties.code));
     if (!features.length) return;
     currentDeptDisplay = L.geoJSON(features, {
-        style: { fillColor: '#10b981', weight: 1.5, color: '#34d399', fillOpacity: 0.15 },
+        style: { fillColor: '#10b981', weight: 2, color: '#34d399', fillOpacity: 0.18, opacity: 1 },
         onEachFeature: (feature, layer) => {
             layer.bindTooltip(feature.properties.nom, { sticky: true });
             layer.on('click', e => { L.DomEvent.stopPropagation(e); map.fitBounds(e.target.getBounds()); });
@@ -1475,7 +1497,7 @@ async function addMarkerToMap(contact) {
         " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>`;
     
     const icon = L.divIcon({
-        className: '',
+        className: 'custom-div-icon',
         html: iconHtml,
         iconSize: isRegionOnly ? [16, 16] : [13, 13],
         iconAnchor: isRegionOnly ? [8, 8] : [6, 6]
@@ -1527,6 +1549,65 @@ async function addMarkerToMap(contact) {
 }
 
 // ══════════════════════════════════════════════
+// REGION FLOATING MARKER (contacts sans ville, région connue)
+// ══════════════════════════════════════════════
+async function addRegionFloatingMarker(group) {
+    const region = group[0].region;
+    const coords = await geocodeRegion(region);
+    if (!coords) return;
+
+    const count = group.length;
+    const color = count === 1 ? getCompanyColor(group[0].company) : '#94a3b8';
+
+    const iconHtml = `<div style="
+        background:${color};width:${count > 1 ? 26 : 14}px;height:${count > 1 ? 26 : 14}px;
+        border-radius:4px;
+        border:2px dashed rgba(255,255,255,0.8);
+        box-shadow:0 2px 8px rgba(0,0,0,0.35);
+        display:flex;align-items:center;justify-content:center;
+        color:white;font-weight:700;font-size:0.72rem;cursor:pointer;
+        opacity:0.85;
+    ">${count > 1 ? count : ''}</div>`;
+
+    const size = count > 1 ? 26 : 14;
+    const icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: iconHtml,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2]
+    });
+
+    const listHtml = group.map(c => {
+        const col = getCompanyColor(c.company);
+        return `
+            <div style="padding:7px 0;border-bottom:1px solid #334155;">
+                <div style="font-weight:600;font-size:0.85rem;color:#f1f5f9;">${c.firstName} ${c.lastName || ''}</div>
+                <div style="color:${col};font-size:0.75rem;font-weight:600;">${c.company || '—'}</div>
+                ${c.email ? `<div style="font-size:0.72rem;color:#94a3b8;">📧 ${c.email}</div>` : ''}
+                ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
+                <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 région uniquement</div>
+                <div style="margin-top:5px;display:flex;gap:4px;">
+                    <button onclick="editContact('${c.id}');map.closePopup();" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;">Modifier</button>
+                    <button onclick="deleteContact('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;">Supprimer</button>
+                </div>
+            </div>`;
+    }).join('');
+
+    const marker = L.marker([coords.lat, coords.lon], { icon });
+    marker.bindPopup(`
+        <div style="font-family:'Inter',sans-serif;min-width:210px;max-width:250px;max-height:340px;overflow-y:auto;">
+            <div style="font-weight:700;font-size:0.85rem;margin-bottom:6px;color:#94a3b8;">
+                🌍 ${region} <span style="font-size:0.72rem;font-weight:400;">(sans adresse exacte)</span>
+            </div>
+            ${listHtml}
+        </div>
+    `, { maxWidth: 270 });
+
+    markerLayerGroup.addLayer(marker);
+    group.forEach(c => { markers[c.id] = marker; });
+}
+
+// ══════════════════════════════════════════════
 // CITY CLUSTER MARKER (plusieurs contacts même ville)
 // ══════════════════════════════════════════════
 function addCityClusterMarker(group) {
@@ -1534,7 +1615,7 @@ function addCityClusterMarker(group) {
     const count = group.length;
 
     const icon = L.divIcon({
-        className: '',
+        className: 'custom-div-icon',
         html: `<div style="
             background:#6366f1;width:28px;height:28px;border-radius:50%;
             border:2.5px solid rgba(255,255,255,0.9);
@@ -1891,11 +1972,11 @@ async function loadZoneDepts() {
 
         zoneRegionLayer = L.geoJSON(allDeptsData, {
             style: (feature) => ({
-                fillColor: selectedZoneRegions.includes(feature.properties.nom) ? '#6366f1' : '#475569',
-                weight: 1.5,
+                fillColor: selectedZoneRegions.includes(feature.properties.nom) ? '#6366f1' : '#334155',
+                weight: 2,
                 opacity: 1,
-                color: '#cbd5e1',
-                fillOpacity: selectedZoneRegions.includes(feature.properties.nom) ? 0.55 : 0.08
+                color: '#94a3b8',
+                fillOpacity: selectedZoneRegions.includes(feature.properties.nom) ? 0.55 : 0.12
             }),
             onEachFeature: (feature, layer) => {
                 layer.on({
@@ -1903,7 +1984,7 @@ async function loadZoneDepts() {
                     mouseover: (e) => e.target.setStyle({ weight: 2.5, fillOpacity: 0.65 }),
                     mouseout: (e) => {
                         const isSelected = selectedZoneRegions.includes(feature.properties.nom);
-                        e.target.setStyle({ weight: 1.5, fillOpacity: isSelected ? 0.55 : 0.08 });
+                        e.target.setStyle({ weight: 2, color: '#94a3b8', fillOpacity: isSelected ? 0.55 : 0.12 });
                     }
                 });
                 layer.bindTooltip(
@@ -1944,8 +2025,9 @@ function updateZoneMapStyles() {
         zoneRegionLayer.eachLayer(layer => {
             const isSelected = selectedZoneRegions.includes(layer.feature.properties.nom);
             layer.setStyle({
-                fillColor: isSelected ? '#6366f1' : '#475569',
-                fillOpacity: isSelected ? 0.55 : 0.08
+                fillColor: isSelected ? '#6366f1' : '#334155',
+                color: '#94a3b8',
+                fillOpacity: isSelected ? 0.55 : 0.12
             });
         });
     }
