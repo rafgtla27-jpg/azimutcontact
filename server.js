@@ -3,25 +3,26 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
-const CONTACTS_FILE = 'contacts.json';
-let contacts = [];
+// ── MONGODB ──
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (fs.existsSync(CONTACTS_FILE)) {
-    try {
-        contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE, 'utf8'));
-    } catch (e) {
-        console.error("Error reading contacts file", e);
-    }
-}
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('MongoDB connecté'))
+    .catch(err => console.error('Erreur MongoDB:', err));
 
+const contactSchema = new mongoose.Schema({}, { strict: false });
+const Contact = mongoose.model('Contact', contactSchema);
+
+// ── LOGIN ──
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'AzimutTrans' && password === 'Azimutt73') {
@@ -31,6 +32,7 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// ── TEMPLATE ──
 app.get('/api/template', (req, res) => {
     const templatePath = path.join(__dirname, 'template_contacts.xlsx');
     if (fs.existsSync(templatePath)) {
@@ -42,18 +44,34 @@ app.get('/api/template', (req, res) => {
     }
 });
 
-app.get('/api/contacts', (req, res) => {
-    res.json(contacts);
+// ── GET CONTACTS ──
+app.get('/api/contacts', async (req, res) => {
+    try {
+        const contacts = await Contact.find({}, { _id: 0, __v: 0 }).lean();
+        res.json(contacts);
+    } catch (err) {
+        console.error('Erreur GET contacts:', err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
 });
 
-app.post('/api/contacts', (req, res) => {
-    contacts = req.body;
-    fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
-    io.emit('contactsUpdated', contacts);
-    res.json({ success: true });
+// ── SAVE CONTACTS ──
+app.post('/api/contacts', async (req, res) => {
+    try {
+        const contacts = req.body;
+        await Contact.deleteMany({});
+        if (contacts.length > 0) {
+            await Contact.insertMany(contacts);
+        }
+        io.emit('contactsUpdated', contacts);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erreur POST contacts:', err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Serveur démarré sur le port ${PORT}`);
 });
