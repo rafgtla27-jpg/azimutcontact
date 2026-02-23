@@ -1115,6 +1115,23 @@ const FRENCH_REGIONS = [
 ];
 
 // ══════════════════════════════════════════════
+// GLOBAL POPUP BUTTON DELEGATION
+// ══════════════════════════════════════════════
+document.addEventListener('click', (e) => {
+    const editBtn   = e.target.closest('[data-popup-edit]');
+    const deleteBtn = e.target.closest('[data-popup-delete]');
+    if (editBtn) {
+        e.stopPropagation();
+        map.closePopup();
+        editContact(editBtn.dataset.popupEdit);
+    }
+    if (deleteBtn) {
+        e.stopPropagation();
+        deleteContact(deleteBtn.dataset.popupDelete);
+    }
+});
+
+// ══════════════════════════════════════════════
 // TOAST
 // ══════════════════════════════════════════════
 function toast(msg, type = 'success', duration = 3500) {
@@ -1484,23 +1501,27 @@ async function findRegion(lat, lon) {
 // GEOCODE - OPTIMISÉ AVEC CACHE
 // ══════════════════════════════════════════════
 async function geocode(city) {
-    // Check cache first
     const cacheKey = city.toLowerCase().trim();
-    if (geocodeCache[cacheKey] !== undefined) {
-        return geocodeCache[cacheKey];
-    }
+    if (geocodeCache[cacheKey] !== undefined) return geocodeCache[cacheKey];
 
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`;
+    const tryFetch = async (url) => {
         const res = await fetch(url, { headers: { 'User-Agent': 'AzimutTransContactMap/1.0' } });
         const data = await res.json();
-        if (data.length > 0) {
-            const result = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), fullName: data[0].display_name };
+        return data.length > 0 ? data[0] : null;
+    };
+
+    try {
+        // Essai 1 : ville + France avec restriction pays
+        let hit = await tryFetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', France')}&format=json&limit=1&accept-language=fr&countrycodes=fr`);
+        // Essai 2 : sans restriction pays (communes au nom ambigu)
+        if (!hit) hit = await tryFetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&accept-language=fr&countrycodes=fr`);
+        if (hit) {
+            const result = { lat: parseFloat(hit.lat), lon: parseFloat(hit.lon), fullName: hit.display_name };
             geocodeCache[cacheKey] = result;
             return result;
         }
-    } catch (e) { 
-        console.error('Geocode error:', e); 
+    } catch (e) {
+        console.error('Geocode error:', e);
     }
     geocodeCache[cacheKey] = null;
     return null;
@@ -1629,8 +1650,8 @@ async function addMarkerToMap(contact) {
             ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
             <div style="font-size:0.8rem;color:#94a3b8;">${locationDisplay}</div>
             <div style="margin-top:10px;display:flex;gap:6px;">
-                <button onclick="editContact('${contact.id}');map.closePopup();" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;">Modifier</button>
-                <button onclick="deleteContact('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;">Supprimer</button>
+                <button data-popup-edit="${contact.id}" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                <button data-popup-delete="${contact.id}" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
             </div>
         </div>
     `);
@@ -1690,8 +1711,8 @@ async function addRegionFloatingMarker(group) {
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 région uniquement</div>
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button onclick="editContact('${c.id}');map.closePopup();" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;">Modifier</button>
-                    <button onclick="deleteContact('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;">Supprimer</button>
+                    <button data-popup-edit="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button data-popup-delete="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>`;
     }).join('');
@@ -1739,8 +1760,8 @@ function addCityClusterMarker(group) {
                 ${c.email ? `<div style="font-size:0.72rem;color:#94a3b8;">📧 ${c.email}</div>` : ''}
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button onclick="editContact('${c.id}');map.closePopup();" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;">Modifier</button>
-                    <button onclick="deleteContact('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;">Supprimer</button>
+                    <button data-popup-edit="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button data-popup-delete="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>
         `;
