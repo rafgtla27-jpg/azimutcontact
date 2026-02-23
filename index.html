@@ -1083,10 +1083,13 @@ async function login() {
 async function loadContacts() {
     try {
         const res = await fetch('/api/contacts');
-        contacts = await res.json();
+        const data = await res.json();
+        contacts = Array.isArray(data) ? data : [];
+        if (!Array.isArray(data)) toast('Erreur chargement contacts (serveur)', 'error');
         refreshUI();
         await init();
     } catch (e) {
+        contacts = [];
         toast('Erreur lors du chargement des contacts', 'error');
     }
 }
@@ -1101,7 +1104,7 @@ function refreshUI() {
 }
 
 socket.on('contactsUpdated', (newContacts) => {
-    contacts = newContacts;
+    contacts = Array.isArray(newContacts) ? newContacts : [];
     refreshUI();
 });
 
@@ -1392,29 +1395,19 @@ async function geocodeRegion(region) {
     return null;
 }
 
-// NOUVEAU: Batch geocoding pour import Excel rapide
+// Batch geocoding séquentiel - respecte la limite Nominatim (1 req/sec)
 async function geocodeBatch(cities, onProgress) {
-    const BATCH_SIZE = 5; // 5 requêtes en parallèle
-    const DELAY_MS = 250; // 250ms entre les batchs
-    const results = [];
-    
-    for (let i = 0; i < cities.length; i += BATCH_SIZE) {
-        const batch = cities.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(city => geocode(city));
-        const batchResults = await Promise.all(batchPromises);
-        results.push(...batchResults);
-        
-        if (onProgress) {
-            onProgress(Math.min(i + BATCH_SIZE, cities.length), cities.length);
-        }
-        
-        // Délai entre les batchs
-        if (i + BATCH_SIZE < cities.length) {
+    const DELAY_MS = 1100;
+    const uniqueCities = [...new Set(cities.map(c => c.toLowerCase().trim()))];
+    let done = 0;
+    for (const city of uniqueCities) {
+        if (geocodeCache[city] === undefined) {
+            await geocode(city);
             await new Promise(r => setTimeout(r, DELAY_MS));
         }
+        done++;
+        if (onProgress) onProgress(done, uniqueCities.length);
     }
-    
-    return results;
 }
 
 let cityDebounceTimer = null;
