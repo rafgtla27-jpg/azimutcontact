@@ -948,13 +948,13 @@
 <div id="zone-map-modal" class="zone-map-modal">
     <div class="zone-map-content">
         <div class="zone-map-header">
-            <h3>🗺️ Sélectionner les zones de livraison</h3>
+            <h3>🗺️ Sélectionner les départements de livraison</h3>
             <button class="close-modal" onclick="closeZoneMapSelector()">✕</button>
         </div>
         <div class="zone-map-body">
             <div class="zone-map-sidebar">
                 <p style="font-size:0.75rem;font-weight:600;margin:0 0 12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">
-                    RÉGIONS FRANÇAISES
+                    DÉPARTEMENTS FRANÇAIS
                 </p>
                 <div id="zone-regions-list"></div>
             </div>
@@ -1928,13 +1928,14 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
 });
 
 // ══════════════════════════════════════════════
-// ZONE MAP SELECTOR - NOUVEAU SYSTÈME
+// ZONE MAP SELECTOR - DÉPARTEMENTS
 // ══════════════════════════════════════════════
+let allDeptsData = null; // cache du geojson départements
+
 function showZoneMapSelector() {
     const modal = document.getElementById('zone-map-modal');
     modal.classList.add('open');
-    
-    // Initialiser la carte si pas encore fait
+
     if (!zoneSelectorMap) {
         setTimeout(() => {
             zoneSelectorMap = L.map('zone-selector-map').setView([46.2276, 2.2137], 6);
@@ -1942,11 +1943,9 @@ function showZoneMapSelector() {
                 attribution: '© OpenStreetMap',
                 maxZoom: 18
             }).addTo(zoneSelectorMap);
-            
-            loadZoneRegions();
+            loadZoneDepts();
         }, 100);
     } else {
-        // Charger les régions déjà sélectionnées si on édite
         if (window.tempDeliveryZoneRegions && window.tempDeliveryZoneRegions.length > 0) {
             selectedZoneRegions = [...window.tempDeliveryZoneRegions];
         }
@@ -1958,56 +1957,56 @@ function showZoneMapSelector() {
     }
 }
 
-async function loadZoneRegions() {
+async function loadZoneDepts() {
     try {
-        const res = await fetch('https://france-geojson.gregoiredavid.fr/repo/regions.geojson');
-        const data = await res.json();
-        
-        zoneRegionLayer = L.geoJSON(data, {
+        const res = await fetch('departements.geojson');
+        allDeptsData = await res.json();
+
+        zoneRegionLayer = L.geoJSON(allDeptsData, {
             style: (feature) => ({
                 fillColor: selectedZoneRegions.includes(feature.properties.nom) ? '#6366f1' : '#475569',
-                weight: 2,
+                weight: 1.5,
                 opacity: 1,
                 color: '#cbd5e1',
-                fillOpacity: selectedZoneRegions.includes(feature.properties.nom) ? 0.5 : 0.1
+                fillOpacity: selectedZoneRegions.includes(feature.properties.nom) ? 0.55 : 0.08
             }),
             onEachFeature: (feature, layer) => {
                 layer.on({
-                    click: () => {
-                        const regionName = feature.properties.nom;
-                        toggleRegionSelection(regionName);
-                    },
-                    mouseover: (e) => {
-                        e.target.setStyle({ weight: 3, fillOpacity: 0.6 });
-                    },
+                    click: () => toggleRegionSelection(feature.properties.nom),
+                    mouseover: (e) => e.target.setStyle({ weight: 2.5, fillOpacity: 0.65 }),
                     mouseout: (e) => {
                         const isSelected = selectedZoneRegions.includes(feature.properties.nom);
-                        e.target.setStyle({ 
-                            weight: 2,
-                            fillOpacity: isSelected ? 0.5 : 0.1 
-                        });
+                        e.target.setStyle({ weight: 1.5, fillOpacity: isSelected ? 0.55 : 0.08 });
                     }
                 });
-                
-                layer.bindTooltip(feature.properties.nom, { permanent: false, sticky: true });
+                layer.bindTooltip(
+                    feature.properties.code + ' - ' + feature.properties.nom,
+                    { permanent: false, sticky: true }
+                );
             }
         }).addTo(zoneSelectorMap);
-        
+
         updateZoneRegionsList();
     } catch (e) {
-        console.error('Erreur chargement régions:', e);
+        console.error('Erreur chargement départements:', e);
         toast('Erreur chargement de la carte', 'error');
     }
 }
 
 function updateZoneRegionsList() {
     const list = document.getElementById('zone-regions-list');
-    list.innerHTML = FRENCH_REGIONS.map(region => {
-        const isSelected = selectedZoneRegions.includes(region);
+    if (!allDeptsData) { list.innerHTML = '<p style="color:var(--text-muted);font-size:0.75rem;">Chargement...</p>'; return; }
+
+    const depts = allDeptsData.features
+        .map(f => ({ code: f.properties.code, nom: f.properties.nom }))
+        .sort((a, b) => a.code.localeCompare(b.code));
+
+    list.innerHTML = depts.map(d => {
+        const isSelected = selectedZoneRegions.includes(d.nom);
         return `
-            <div class="region-checkbox-item ${isSelected ? 'selected' : ''}" onclick="toggleRegionSelection('${region}')">
-                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleRegionSelection('${region}')">
-                <label>${region}</label>
+            <div class="region-checkbox-item ${isSelected ? 'selected' : ''}" onclick="toggleRegionSelection('${d.nom.replace(/'/g, "\'")}')" style="padding:7px 10px;">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleRegionSelection('${d.nom.replace(/'/g, "\'")}')" style="flex-shrink:0;">
+                <label style="font-size:0.75rem;"><span style="color:var(--text-muted);margin-right:4px;">${d.code}</span>${d.nom}</label>
             </div>
         `;
     }).join('');
@@ -2019,58 +2018,50 @@ function updateZoneMapStyles() {
             const isSelected = selectedZoneRegions.includes(layer.feature.properties.nom);
             layer.setStyle({
                 fillColor: isSelected ? '#6366f1' : '#475569',
-                fillOpacity: isSelected ? 0.5 : 0.1
+                fillOpacity: isSelected ? 0.55 : 0.08
             });
         });
     }
 }
 
-function toggleRegionSelection(regionName) {
-    const index = selectedZoneRegions.indexOf(regionName);
+function toggleRegionSelection(nom) {
+    const index = selectedZoneRegions.indexOf(nom);
     if (index > -1) {
         selectedZoneRegions.splice(index, 1);
     } else {
-        selectedZoneRegions.push(regionName);
+        selectedZoneRegions.push(nom);
     }
-    
     updateZoneMapStyles();
     updateZoneRegionsList();
 }
 
 function applyZoneSelection() {
     if (selectedZoneRegions.length === 0) {
-        toast('Veuillez sélectionner au moins une région', 'warning');
+        toast('Veuillez sélectionner au moins un département', 'warning');
         return;
     }
-    
-    // Générer un nom de zone
-    const zoneName = selectedZoneRegions.length === 1 
+
+    const zoneName = selectedZoneRegions.length === 1
         ? selectedZoneRegions[0]
-        : `Zone ${selectedZoneRegions.length} régions`;
-    
-    // Mettre à jour le champ
+        : `Zone ${selectedZoneRegions.length} dép.`;
+
     document.getElementById('delivery-zone').value = zoneName;
-    
-    // Afficher les zones sélectionnées
+
     const display = document.getElementById('selected-zones-display');
     const chipsContainer = document.getElementById('zone-chips-container');
-    
-    chipsContainer.innerHTML = selectedZoneRegions.sort().map(r => 
+    chipsContainer.innerHTML = [...selectedZoneRegions].sort().map(r =>
         `<span class="zone-chip">${r}</span>`
     ).join('');
-    
     display.style.display = 'block';
-    
-    // Stocker temporairement les régions sélectionnées pour la sauvegarde
+
     window.tempDeliveryZoneRegions = [...selectedZoneRegions];
-    
+
     closeZoneMapSelector();
-    toast(`✓ Zone configurée: ${selectedZoneRegions.length} région(s) sélectionnée(s)`);
+    toast(`✓ Zone configurée : ${selectedZoneRegions.length} département(s)`);
 }
 
 function closeZoneMapSelector() {
     document.getElementById('zone-map-modal').classList.remove('open');
-    // Ne pas réinitialiser selectedZoneRegions ici pour permettre la réouverture
 }
 
 // ══════════════════════════════════════════════
