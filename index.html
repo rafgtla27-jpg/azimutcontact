@@ -901,9 +901,9 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label>🚚 Par Zone de Livraison</label>
+                <label>📍 Par Département</label>
                 <select id="delivery-zone-select" onchange="filterData()">
-                    <option value="all">Toutes les zones</option>
+                    <option value="all">Tous les départements</option>
                 </select>
             </div>
             <button class="btn-ghost" style="font-size:0.75rem;padding:7px;margin-top:4px;"
@@ -1272,24 +1272,12 @@ function updateFilters() {
     const dzs = document.getElementById('delivery-zone-select');
     const regions   = [...new Set(contacts.map(c => c.region).filter(Boolean))].sort();
     const companies = [...new Set(contacts.map(c => c.company).filter(Boolean))].sort();
-    const deliveryZones = [...new Set(contacts.map(c => c.deliveryZone).filter(Boolean))].sort();
-    
+    // Collecter tous les départements uniques dans deliveryZoneRegions
+    const allDepts = [...new Set(contacts.flatMap(c => c.deliveryZoneRegions || []))].sort();
+
     rs.innerHTML = '<option value="all">Toutes les régions</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join('');
     cs.innerHTML = '<option value="all">Toutes les entreprises</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
-    // Pour chaque zone, trouver les départements associés depuis les contacts
-    const zoneDeptsMap = {};
-    contacts.forEach(c => {
-        if (c.deliveryZone && c.deliveryZoneRegions && c.deliveryZoneRegions.length > 0) {
-            zoneDeptsMap[c.deliveryZone] = c.deliveryZoneRegions;
-        }
-    });
-    dzs.innerHTML = '<option value="all">Toutes les zones</option>' + deliveryZones.map(dz => {
-        const depts = zoneDeptsMap[dz];
-        const label = depts && depts.length > 0
-            ? depts.slice(0, 4).join(', ') + (depts.length > 4 ? ` +${depts.length - 4}` : '')
-            : dz;
-        return `<option value="${dz}">🚚 ${label}</option>`;
-    }).join('');
+    dzs.innerHTML = '<option value="all">Tous les départements</option>' + allDepts.map(d => `<option value="${d}">📍 ${d}</option>`).join('');
     
     rs.value = currentRegion;
     cs.value = currentCompany;
@@ -1346,7 +1334,7 @@ async function filterData() {
     let filtered = contacts.filter(c => {
         if (currentRegion  !== 'all' && c.region  !== currentRegion)  return false;
         if (currentCompany !== 'all' && c.company !== currentCompany) return false;
-        if (currentDeliveryZone !== 'all' && c.deliveryZone !== currentDeliveryZone) return false;
+        if (currentDeliveryZone !== 'all' && !(c.deliveryZoneRegions || []).includes(currentDeliveryZone)) return false;
         if (search) {
             const haystack = [c.firstName, c.lastName, c.city, c.company, c.email, c.region, c.deliveryZone]
                 .map(v => (v || '').toLowerCase()).join(' ');
@@ -1794,28 +1782,23 @@ function renderContacts(filtered) {
         let scopeBadges = '';
         if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
         if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
-        
+
         const isRegionOnly = !contact.city && contact.region;
         const noLoc = (contact.lat == null && !isRegionOnly) ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
-        
-        // Badge spécial pour contacts région-only
         const regionOnlyBadge = isRegionOnly ? '<span class="no-loc-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;">🌍 Région</span>' : '';
-        
-        // Badge delivery zone avec style distinct
-        const deliveryZoneBadge = contact.deliveryZone 
-            ? `<span class="no-loc-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);font-weight:600;">🚚 ${contact.deliveryZone}</span>` 
+        const deliveryZoneBadge = contact.deliveryZone
+            ? `<span class="no-loc-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);font-weight:600;">🚚 ${contact.deliveryZone}</span>`
             : '';
+
+        const locationDisplay = isRegionOnly
+            ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
+            : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
 
         const div = document.createElement('div');
         div.className = 'contact-item';
         div.dataset.id = contact.id;
         div.style.setProperty('--company-color', color);
-        
-        // Affichage location : si région-only, affichage spécial
-        const locationDisplay = isRegionOnly 
-            ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
-            : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
-        
+
         div.innerHTML = `
             <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
             <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
@@ -1823,16 +1806,34 @@ function renderContacts(filtered) {
             ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
             <p>${locationDisplay}</p>
             <div class="contact-actions">
-                <button class="btn-sm btn-success" onclick="editContact('${contact.id}')">✏️ Modifier</button>
-                <button class="btn-sm btn-danger" onclick="deleteContact('${contact.id}')">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="focusOnMap('${contact.id}')">🗺</button>` : ''}
+                <button class="btn-sm btn-success" data-action="edit">✏️ Modifier</button>
+                <button class="btn-sm btn-danger" data-action="delete">🗑 Supprimer</button>
+                ${contact.lat != null ? `<button class="btn-sm btn-ghost" data-action="focus">🗺</button>` : ''}
             </div>
         `;
 
-        // Click card → open popup on map
+        // Single click → focus map
         div.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') return;
+            const btn = e.target.closest('button[data-action]');
+            if (btn) {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                if (action === 'edit')   editContact(contact.id);
+                if (action === 'delete') deleteContact(contact.id);
+                if (action === 'focus')  focusOnMap(contact.id);
+                return;
+            }
             if (contact.lat != null) focusOnMap(contact.id);
+            // Highlight zone de livraison sur la carte
+            if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0) {
+                highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
+            }
+        });
+
+        // Double click → fiche contact détaillée
+        div.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            showContactInfo(contact);
         });
 
         container.appendChild(div);
@@ -1848,6 +1849,95 @@ function focusOnMap(id) {
     document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('highlighted'));
     const card = document.querySelector(`.contact-item[data-id="${id}"]`);
     if (card) card.classList.add('highlighted');
+}
+
+// ══════════════════════════════════════════════
+// HIGHLIGHT ZONE + CONTACT INFO POPUP
+// ══════════════════════════════════════════════
+let activeZoneHighlight = null;
+
+function highlightDeliveryZone(deptNames, contactId) {
+    // Supprimer le highlight précédent
+    if (activeZoneHighlight) { map.removeLayer(activeZoneHighlight); activeZoneHighlight = null; }
+    if (!deptNames || deptNames.length === 0) return;
+    if (!deptLayer) return;
+
+    const features = deptLayer.toGeoJSON().features.filter(f =>
+        deptNames.includes(f.properties.nom)
+    );
+    if (!features.length) return;
+
+    activeZoneHighlight = L.geoJSON(features, {
+        style: {
+            fillColor: '#f59e0b',
+            weight: 2.5,
+            color: '#fbbf24',
+            fillOpacity: 0.22,
+            opacity: 1
+        }
+    }).addTo(map);
+
+    // Auto-effacement au prochain clic sur la carte
+    map.once('click', () => {
+        if (activeZoneHighlight) { map.removeLayer(activeZoneHighlight); activeZoneHighlight = null; }
+    });
+}
+
+function showContactInfo(c) {
+    const existing = document.getElementById('contact-info-modal');
+    if (existing) existing.remove();
+
+    const color = getCompanyColor(c.company);
+    const depts = (c.deliveryZoneRegions || []);
+
+    const ov = document.createElement('div');
+    ov.id = 'contact-info-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    ov.innerHTML = `
+        <div style="background:var(--sidebar-bg);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:420px;width:90%;font-family:'Inter',sans-serif;animation:modalIn 0.2s ease;box-shadow:0 32px 64px rgba(0,0,0,0.5);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+                <div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#f1f5f9;">${c.firstName} ${c.lastName || ''}</div>
+                    <div style="color:${color};font-weight:600;font-size:0.85rem;">${c.company || '—'}</div>
+                </div>
+                <button id="ci-close" style="width:auto;padding:5px 10px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);border-radius:8px;font-size:1rem;">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                ${c.email ? `<div style="background:var(--card-bg);padding:10px;border-radius:10px;border:1px solid var(--border);grid-column:1/-1;">
+                    <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Email</div>
+                    <a href="mailto:${c.email}" style="color:#60a5fa;font-size:0.85rem;text-decoration:none;">${c.email}</a>
+                </div>` : ''}
+                ${c.phone ? `<div style="background:var(--card-bg);padding:10px;border-radius:10px;border:1px solid var(--border);">
+                    <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Téléphone</div>
+                    <div style="font-size:0.85rem;color:#f1f5f9;">${c.phone}</div>
+                </div>` : ''}
+                <div style="background:var(--card-bg);padding:10px;border-radius:10px;border:1px solid var(--border);">
+                    <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Localisation</div>
+                    <div style="font-size:0.85rem;color:#f1f5f9;">${c.city || '—'}${c.region ? ' · ' + c.region : ''}</div>
+                </div>
+                ${c.scopeRegional || c.scopeNational ? `<div style="background:var(--card-bg);padding:10px;border-radius:10px;border:1px solid var(--border);">
+                    <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Portée</div>
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        ${c.scopeRegional ? '<span style="background:rgba(34,197,94,0.15);color:#4ade80;padding:2px 7px;border-radius:4px;font-size:0.72rem;font-weight:600;">Régional</span>' : ''}
+                        ${c.scopeNational ? '<span style="background:rgba(99,102,241,0.15);color:#818cf8;padding:2px 7px;border-radius:4px;font-size:0.72rem;font-weight:600;">National</span>' : ''}
+                    </div>
+                </div>` : ''}
+            </div>
+            ${depts.length > 0 ? `<div style="background:var(--card-bg);padding:10px;border-radius:10px;border:1px solid rgba(245,158,11,0.3);margin-bottom:16px;">
+                <div style="font-size:0.65rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">🚚 Zone de livraison · ${depts.length} département(s)</div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;">${depts.map(d => `<span style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:2px 7px;border-radius:12px;font-size:0.72rem;">${d}</span>`).join('')}</div>
+            </div>` : ''}
+            <div style="display:flex;gap:8px;">
+                <button id="ci-edit" style="flex:1;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:600;">✏️ Modifier</button>
+                <button id="ci-delete" style="flex:1;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:600;">🗑 Supprimer</button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(ov);
+    ov.querySelector('#ci-close').onclick = () => ov.remove();
+    ov.querySelector('#ci-edit').onclick   = () => { ov.remove(); editContact(c.id); };
+    ov.querySelector('#ci-delete').onclick = () => { ov.remove(); deleteContact(c.id); };
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
 }
 
 // ══════════════════════════════════════════════
