@@ -1103,6 +1103,8 @@ let selectedZoneRegions = [];
 
 // Nouveau: Geocoding cache pour performance
 const geocodeCache = {};
+const PAGE_SIZE = 50;
+let currentPage = 1;
 
 const COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6',
                 '#ec4899','#06b6d4','#10b981','#f97316','#6366f1'];
@@ -1189,6 +1191,14 @@ async function login() {
 // ══════════════════════════════════════════════
 async function loadContacts() {
     try {
+        // Charger le cache géocodage persistant en premier
+        const gcRes = await fetch('/api/geocache');
+        if (gcRes.ok) {
+            const gcData = await gcRes.json();
+            gcData.forEach(e => {
+                if (e.city) geocodeCache[e.city.toLowerCase().trim()] = { lat: e.lat, lon: e.lon, fullName: e.fullName || '' };
+            });
+        }
         const res = await fetch('/api/contacts');
         const data = await res.json();
         contacts = Array.isArray(data) ? data : [];
@@ -1199,6 +1209,16 @@ async function loadContacts() {
         contacts = [];
         toast('Erreur lors du chargement des contacts', 'error');
     }
+}
+
+// Persiste les nouvelles entrées de géocodage en base
+async function persistGeocache() {
+    const entries = Object.entries(geocodeCache)
+        .filter(([k, v]) => v && !k.startsWith('region_'))
+        .map(([city, v]) => ({ city, lat: v.lat, lon: v.lon, fullName: v.fullName || '' }));
+    if (entries.length === 0) return;
+    try { await fetch('/api/geocache', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entries) }); }
+    catch (e) { console.warn('Geocache persist error:', e); }
 }
 
 function refreshUI() {
@@ -1338,6 +1358,7 @@ map.on('click', () => {
 });
 
 async function filterData() {
+    currentPage = 1;
     currentRegion  = document.getElementById('region-select').value;
     currentCompany = document.getElementById('company-select').value;
     currentScope   = document.getElementById('scope-select').value;
@@ -1798,7 +1819,12 @@ function renderContacts(filtered) {
         return;
     }
 
-    filtered.forEach(contact => {
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    currentPage = Math.min(currentPage, totalPages);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filtered.slice(start, start + PAGE_SIZE);
+
+    page.forEach(contact => {
         const color = getCompanyColor(contact.company);
         let scopeBadges = '';
         if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
@@ -1859,6 +1885,30 @@ function renderContacts(filtered) {
 
         container.appendChild(div);
     });
+
+    // Pagination footer
+    if (totalPages > 1) {
+        const pag = document.createElement('div');
+        pag.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 0 4px;';
+        const btn = (label, page, disabled) => {
+            const b = document.createElement('button');
+            b.textContent = label;
+            b.disabled = disabled;
+            b.style.cssText = `width:auto;padding:5px 10px;font-size:0.75rem;font-weight:600;
+                background:${disabled ? 'var(--card-bg)' : 'var(--primary)'};
+                color:${disabled ? 'var(--text-muted)' : 'white'};
+                border:1px solid var(--border);border-radius:7px;cursor:${disabled ? 'default' : 'pointer'};`;
+            if (!disabled) b.onclick = () => { currentPage = page; renderContacts(currentFiltered); };
+            return b;
+        };
+        pag.appendChild(btn('←', currentPage - 1, currentPage === 1));
+        const info = document.createElement('span');
+        info.textContent = `${currentPage} / ${totalPages}`;
+        info.style.cssText = 'font-size:0.75rem;color:var(--text-muted);min-width:50px;text-align:center;';
+        pag.appendChild(info);
+        pag.appendChild(btn('→', currentPage + 1, currentPage === totalPages));
+        container.appendChild(pag);
+    }
 }
 
 function focusOnMap(id) {
@@ -2483,43 +2533,52 @@ async function importExcel(input) {
                 showImportProgress('Géolocalisation des villes...', current, total);
             });
 
+            // Persister les nouvelles entrées en base
+            await persistGeocache();
+
             // Maintenant créer les contacts avec les coordonnées en cache
             showImportProgress('Création des contacts...', 0, rowsData.length);
             for (let i = 0; i < rowsData.length; i++) {
                 const { city, firstName, lastName, company, email, phone, regionFF, deliveryZone, scopeRegional, scopeNational } = rowsData[i];
                 
+                // Chercher un contact existant pour préserver ses coordonnées GPS
+                const existingIdx = mergeMode === 'merge'
+                    ? contacts.findIndex(c =>
+                        c.firstName.toLowerCase() === firstName.toLowerCase() &&
+                        (c.lastName||'').toLowerCase() === lastName.toLowerCase() &&
+                        (c.city||'').toLowerCase() === city.toLowerCase())
+                    : -1;
+                const existing = existingIdx >= 0 ? contacts[existingIdx] : null;
+
                 let lat = null, lon = null, fullName = '', region = regionFF;
-                if (city) {
-                    const coords = await geocode(city); // Depuis le cache maintenant!
+
+                // Si le contact existe et que la ville n'a pas changé → garder les coordonnées
+                if (existing && existing.lat != null && (existing.city||'').toLowerCase() === city.toLowerCase()) {
+                    lat = existing.lat;
+                    lon = existing.lon;
+                    fullName = existing.fullName || '';
+                    region = existing.region || regionFF;
+                } else if (city) {
+                    const coords = await geocode(city);
                     if (coords) {
-                        lat = coords.lat; 
-                        lon = coords.lon; 
+                        lat = coords.lat;
+                        lon = coords.lon;
                         fullName = coords.fullName;
                         region = await findRegion(lat, lon) || regionFF;
                     }
                 }
 
-                const nc = { 
-                    firstName, lastName, email, phone, city, region, company, deliveryZone, 
+                const nc = {
+                    firstName, lastName, email, phone, city, region, company, deliveryZone,
                     scopeRegional, scopeNational, lat, lon, fullName,
-                    deliveryZoneRegions: [] // Initialisé vide, peut être configuré après
+                    deliveryZoneRegions: existing ? (existing.deliveryZoneRegions || []) : []
                 };
 
-                if (mergeMode === 'merge') {
-                    const idx = contacts.findIndex(c =>
-                        c.firstName.toLowerCase() === firstName.toLowerCase() &&
-                        (c.lastName||'').toLowerCase() === lastName.toLowerCase() &&
-                        (c.city||'').toLowerCase() === city.toLowerCase()
-                    );
-                    if (idx >= 0) { 
-                        contacts[idx] = { ...contacts[idx], ...nc }; 
-                        updated++; 
-                    } else { 
-                        contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); 
-                        added++; 
-                    }
+                if (existing) {
+                    contacts[existingIdx] = { ...existing, ...nc };
+                    updated++;
                 } else {
-                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc }); 
+                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc });
                     added++;
                 }
                 
