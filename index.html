@@ -135,21 +135,12 @@
             height: 100vh;
             background: var(--sidebar-bg);
             border-left: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .contact-list-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, #1e293b 0%, #162032 100%);
-            position: sticky;
-            top: 0;
-            flex-shrink: 0;
-        }
-        #contacts-scroll {
-            flex: 1;
             overflow-y: auto;
+        }
+        #contact-list::-webkit-scrollbar { width: 4px; }
+        #contact-list::-webkit-scrollbar-track { background: transparent; }
+        #contact-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        #contacts-scroll {
             padding: 12px;
         }
         #contacts-scroll::-webkit-scrollbar { width: 4px; }
@@ -782,6 +773,35 @@
             </button>
         </div>
 
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">Recherche</p>
+            <div class="contact-stats" style="margin-bottom:10px;">
+                <div class="stat-card">
+                    <span class="stat-value" id="total-contacts">0</span>
+                    <span class="stat-label">Contacts</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="total-cities">0</span>
+                    <span class="stat-label">Villes</span>
+                </div>
+            </div>
+            <div class="search-wrapper" style="margin-bottom:8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" id="contact-search" placeholder="Nom, ville, entreprise..."
+                       oninput="filterData()">
+            </div>
+            <div class="sort-bar" style="margin-bottom:8px;">
+                <button class="sort-btn active" id="sort-name" onclick="setSortMode('name')">A→Z Nom</button>
+                <button class="sort-btn" id="sort-company" onclick="setSortMode('company')">Entreprise</button>
+                <button class="sort-btn" id="sort-city" onclick="setSortMode('city')">Ville</button>
+            </div>
+            <button class="btn-ghost" style="font-size:0.72rem;padding:6px;" onclick="copyFilteredEmails()">
+                📋 Copier emails (filtrés)
+            </button>
+        </div>
+
         <div class="sidebar-section" style="flex:1;">
             <p class="sidebar-section-title">Filtres</p>
             <div class="filter-group">
@@ -850,33 +870,6 @@
 
     <!-- CONTACT LIST RIGHT -->
     <div id="contact-list">
-        <div class="contact-list-header">
-            <div class="contact-stats">
-                <div class="stat-card">
-                    <span class="stat-value" id="total-contacts">0</span>
-                    <span class="stat-label">Contacts</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="total-cities">0</span>
-                    <span class="stat-label">Villes</span>
-                </div>
-            </div>
-            <div class="search-wrapper">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input type="text" id="contact-search" placeholder="Rechercher nom, ville, entreprise..."
-                       oninput="filterData()">
-            </div>
-            <div class="sort-bar">
-                <button class="sort-btn active" id="sort-name" onclick="setSortMode('name')">A→Z Nom</button>
-                <button class="sort-btn" id="sort-company" onclick="setSortMode('company')">Entreprise</button>
-                <button class="sort-btn" id="sort-city" onclick="setSortMode('city')">Ville</button>
-            </div>
-            <button class="btn-ghost" style="font-size:0.72rem;padding:6px;" onclick="copyFilteredEmails()">
-                📋 Copier emails (filtrés)
-            </button>
-        </div>
         <div id="contacts-scroll">
             <div id="contacts"></div>
         </div>
@@ -1192,7 +1185,20 @@ function updateFilters() {
     
     rs.innerHTML = '<option value="all">Toutes les régions</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join('');
     cs.innerHTML = '<option value="all">Toutes les entreprises</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
-    dzs.innerHTML = '<option value="all">Toutes les zones</option>' + deliveryZones.map(dz => `<option value="${dz}">🚚 ${dz}</option>`).join('');
+    // Pour chaque zone, trouver les départements associés depuis les contacts
+    const zoneDeptsMap = {};
+    contacts.forEach(c => {
+        if (c.deliveryZone && c.deliveryZoneRegions && c.deliveryZoneRegions.length > 0) {
+            zoneDeptsMap[c.deliveryZone] = c.deliveryZoneRegions;
+        }
+    });
+    dzs.innerHTML = '<option value="all">Toutes les zones</option>' + deliveryZones.map(dz => {
+        const depts = zoneDeptsMap[dz];
+        const label = depts && depts.length > 0
+            ? depts.slice(0, 4).join(', ') + (depts.length > 4 ? ` +${depts.length - 4}` : '')
+            : dz;
+        return `<option value="${dz}">🚚 ${label}</option>`;
+    }).join('');
     
     rs.value = currentRegion;
     cs.value = currentCompany;
@@ -1212,10 +1218,28 @@ function resetFilters() {
 }
 
 function resetMapView() {
+    currentRegion = 'all'; currentCompany = 'all'; currentScope = 'all'; currentDeliveryZone = 'all';
+    const rs = document.getElementById('region-select');
+    const cs = document.getElementById('company-select');
+    const ss = document.getElementById('scope-select');
+    const dz = document.getElementById('delivery-zone-select');
+    const sr = document.getElementById('contact-search');
+    if (rs) rs.value = 'all';
+    if (cs) cs.value = 'all';
+    if (ss) ss.value = 'all';
+    if (dz) dz.value = 'all';
+    if (sr) sr.value = '';
     map.setView([46.2276, 2.2137], 6, { animate: true });
     if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
     if (regionLayer) regionLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.08 }));
+    filterData();
 }
+
+// Escape key + click on map background = reset view
+document.addEventListener('keydown', e => { if (e.key === 'Escape') resetMapView(); });
+map.on('click', () => {
+    if (currentDeptDisplay) resetMapView();
+});
 
 async function filterData() {
     currentRegion  = document.getElementById('region-select').value;
