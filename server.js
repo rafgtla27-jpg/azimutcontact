@@ -4,8 +4,7 @@ const { Server } = require('socket.io');
 const path       = require('path');
 const fs         = require('fs');
 const mongoose   = require('mongoose');
-const bcrypt     = require('bcryptjs');
-const jwt        = require('jsonwebtoken');
+const crypto     = require('crypto'); // module natif Node.js - aucune installation requise
 
 const app    = express();
 const server = http.createServer(app);
@@ -15,9 +14,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
 // ── CONFIG ──
-const MONGODB_URI = process.env.MONGODB_URI;
-const JWT_SECRET  = process.env.JWT_SECRET || 'azimut_jwt_secret_change_in_prod';
-const JWT_EXPIRY  = '24h';
+const MONGODB_URI  = process.env.MONGODB_URI;
+const TOKEN_SECRET = process.env.JWT_SECRET || 'azimut_secret_fallback';
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('MongoDB connecté'))
@@ -35,20 +33,58 @@ const Backup         = mongoose.model('Backup', backupSchema);
 
 const userSchema = new mongoose.Schema({
     username:  { type: String, required: true, unique: true, trim: true },
-    password:  { type: String, required: true },   // bcrypt hash
+    password:  { type: String, required: true }, // SHA-256 hash
     role:      { type: String, enum: ['admin', 'user'], default: 'user' },
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date }
 });
 const User = mongoose.model('User', userSchema);
 
-// ── INIT : créer admin par défaut si aucun user ──
+// Sessions en mémoire : token → { id, username, role, expires }
+const sessions = new Map();
+
+// ── CRYPTO HELPERS (natifs Node.js) ──
+function hashPassword(password) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+    return salt + ':' + hash;
+}
+
+function verifyPassword(password, stored) {
+    const [salt, hash] = stored.split(':');
+    const check = crypto.createHmac('sha256', salt).update(password).digest('hex');
+    return check === hash;
+}
+
+function createToken(user) {
+    const token   = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 24 * 60 * 60 * 1000; // 24h
+    sessions.set(token, { id: user._id.toString(), username: user.username, role: user.role, expires });
+    return token;
+}
+
+function getSession(token) {
+    if (!token) return null;
+    const s = sessions.get(token);
+    if (!s) return null;
+    if (Date.now() > s.expires) { sessions.delete(token); return null; }
+    return s;
+}
+
+// Nettoyage sessions expirées toutes les heures
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, s] of sessions.entries()) {
+        if (now > s.expires) sessions.delete(token);
+    }
+}, 60 * 60 * 1000);
+
+// ── INIT admin par défaut ──
 mongoose.connection.once('open', async () => {
     const count = await User.countDocuments();
     if (count === 0) {
-        const hash = await bcrypt.hash('Azimutt73', 12);
-        await User.create({ username: 'AzimutTrans', password: hash, role: 'admin' });
-        console.log('Admin par défaut créé : AzimutTrans / Azimutt73');
+        await User.create({ username: 'AzimutTrans', password: hashPassword('Azimutt73'), role: 'admin' });
+        console.log('Admin créé : AzimutTrans / Azimutt73');
     }
     setTimeout(runBackup, 5000);
 });
@@ -64,7 +100,7 @@ async function runBackup() {
             const toDelete = backups.slice(0, backups.length - 7).map(b => b._id);
             await Backup.deleteMany({ _id: { $in: toDelete } });
         }
-        console.log('Backup auto OK - ' + all.length + ' contacts');
+        console.log('Backup OK - ' + all.length + ' contacts');
     } catch (e) { console.error('Erreur backup:', e); }
 }
 setInterval(runBackup, 24 * 60 * 60 * 1000);
@@ -73,12 +109,10 @@ setInterval(runBackup, 24 * 60 * 60 * 1000);
 function requireAuth(req, res, next) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Non authentifié' });
-    try {
-        req.user = jwt.verify(auth.slice(7), JWT_SECRET);
-        next();
-    } catch (e) {
-        return res.status(401).json({ error: 'Token invalide ou expiré' });
-    }
+    const session = getSession(auth.slice(7));
+    if (!session) return res.status(401).json({ error: 'Session expirée, reconnectez-vous' });
+    req.user = session;
+    next();
 }
 
 function requireAdmin(req, res, next) {
@@ -94,11 +128,10 @@ app.post('/api/login', async (req, res) => {
     if (!username || !password) return res.status(400).json({ success: false, message: 'Champs manquants' });
     try {
         const user = await User.findOne({ username: username.trim() });
-        if (!user) return res.status(401).json({ success: false, message: 'Identifiants incorrects' });
-        const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return res.status(401).json({ success: false, message: 'Identifiants incorrects' });
+        if (!user || !verifyPassword(password, user.password))
+            return res.status(401).json({ success: false, message: 'Identifiants incorrects' });
         await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
-        const token = jwt.sign({ id: user._id.toString(), username: user.username, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+        const token = createToken(user);
         res.json({ success: true, token, username: user.username, role: user.role });
     } catch (err) {
         console.error('Login error:', err);
@@ -106,7 +139,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ── USER MANAGEMENT (admin only) ──
+// ── USER MANAGEMENT (admin) ──
 app.get('/api/users', requireAdmin, async (req, res) => {
     const users = await User.find({}, { password: 0, __v: 0 }).lean();
     res.json(users);
@@ -115,37 +148,34 @@ app.get('/api/users', requireAdmin, async (req, res) => {
 app.post('/api/users', requireAdmin, async (req, res) => {
     const { username, password, role } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'username et password requis' });
+    if (password.length < 6) return res.status(400).json({ error: 'Mot de passe trop court (6 car. min)' });
     try {
-        const hash = await bcrypt.hash(password, 12);
-        const user = await User.create({ username: username.trim(), password: hash, role: role || 'user' });
+        const user = await User.create({ username: username.trim(), password: hashPassword(password), role: role || 'user' });
         res.json({ success: true, id: user._id, username: user.username, role: user.role });
     } catch (err) {
-        if (err.code === 11000) return res.status(409).json({ error: 'Nom d\'utilisateur déjà pris' });
+        if (err.code === 11000) return res.status(409).json({ error: "Nom d'utilisateur déjà pris" });
         res.status(500).json({ error: 'Erreur création' });
     }
 });
 
 app.delete('/api/users/:id', requireAdmin, async (req, res) => {
-    // Empêcher de supprimer le dernier admin
-    const targetUser = await User.findById(req.params.id);
-    if (!targetUser) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    if (targetUser.role === 'admin') {
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (req.params.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas vous supprimer vous-même' });
+    if (target.role === 'admin') {
         const adminCount = await User.countDocuments({ role: 'admin' });
         if (adminCount <= 1) return res.status(400).json({ error: 'Impossible de supprimer le dernier admin' });
     }
-    if (req.params.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas vous supprimer vous-même' });
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true });
 });
 
 app.put('/api/users/:id/password', requireAuth, async (req, res) => {
-    // Un user peut changer son propre mdp; un admin peut changer n'importe lequel
     if (req.params.id !== req.user.id && req.user.role !== 'admin')
         return res.status(403).json({ error: 'Non autorisé' });
     const { password } = req.body;
     if (!password || password.length < 6) return res.status(400).json({ error: 'Mot de passe trop court (6 car. min)' });
-    const hash = await bcrypt.hash(password, 12);
-    await User.findByIdAndUpdate(req.params.id, { password: hash });
+    await User.findByIdAndUpdate(req.params.id, { password: hashPassword(password) });
     res.json({ success: true });
 });
 
@@ -161,17 +191,14 @@ app.get('/api/template', requireAuth, (req, res) => {
     }
 });
 
-// ── GET CONTACTS ──
+// ── CONTACTS ──
 app.get('/api/contacts', requireAuth, async (req, res) => {
     try {
         const contacts = await Contact.find({}, { _id: 0, __v: 0 }).lean();
         res.json(contacts);
-    } catch (err) {
-        res.status(500).json({ error: 'Erreur serveur' });
-    }
+    } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
-// ── SAVE CONTACTS ──
 app.post('/api/contacts', requireAuth, async (req, res) => {
     try {
         const contacts = req.body;
@@ -179,9 +206,7 @@ app.post('/api/contacts', requireAuth, async (req, res) => {
         if (contacts.length > 0) await Contact.insertMany(contacts);
         io.emit('contactsUpdated', contacts);
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Erreur serveur' });
-    }
+    } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
 // ── GEOCACHE ──
@@ -194,8 +219,7 @@ app.get('/api/geocache', requireAuth, async (req, res) => {
 
 app.post('/api/geocache', requireAuth, async (req, res) => {
     try {
-        const entries = req.body;
-        for (const e of entries) {
+        for (const e of req.body) {
             await Geocache.updateOne({ city: e.city }, { $set: e }, { upsert: true });
         }
         res.json({ success: true });
@@ -223,5 +247,5 @@ app.post('/api/backups/restore/:id', requireAdmin, async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
+    console.log('Serveur démarré sur le port ' + PORT);
 });
