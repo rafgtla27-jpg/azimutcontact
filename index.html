@@ -865,11 +865,16 @@
     <!-- SIDEBAR LEFT -->
     <div id="sidebar">
         <div class="sidebar-header">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <h1 style="margin:0 0 2px;">📍 Contact Map</h1>
-                <button onclick="openDbPanel()" style="width:auto;padding:5px 10px;font-size:0.7rem;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;" title="Gérer la base de données">🗄️ DB</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                <h1 style="margin:0;flex:1;">📍 Contact Map</h1>
+                <button onclick="openDbPanel()" style="width:auto;padding:5px 8px;font-size:0.7rem;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;" title="Base de données">🗄️</button>
+                <button onclick="openUsersPanel()" id="admin-only" style="display:none;width:auto;padding:5px 8px;font-size:0.7rem;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;" title="Gérer les utilisateurs">👥</button>
+                <button onclick="logout()" style="width:auto;padding:5px 8px;font-size:0.7rem;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;" title="Déconnexion">⏻</button>
             </div>
-            <p id="sidebar-subtitle">Chargement...</p>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <p id="sidebar-subtitle" style="margin:0;flex:1;">Chargement...</p>
+                <span id="user-badge" style="font-size:0.65rem;padding:2px 7px;background:rgba(99,102,241,0.15);color:#818cf8;border-radius:10px;border:1px solid rgba(99,102,241,0.3);white-space:nowrap;"></span>
+            </div>
         </div>
 
         <div class="sidebar-section">
@@ -997,6 +1002,39 @@
     <div id="contact-list">
         <div id="contacts-scroll">
             <div id="contacts"></div>
+        </div>
+    </div>
+</div>
+
+<!-- USERS PANEL -->
+<div id="users-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:4000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:var(--sidebar-bg);border:1px solid var(--border);border-radius:18px;padding:28px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;gap:16px;box-shadow:0 32px 64px rgba(0,0,0,0.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h2 style="margin:0;font-size:1.1rem;">👥 Gestion des utilisateurs</h2>
+            <button onclick="closeUsersPanel()" style="width:auto;padding:5px 12px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);border-radius:8px;">✕</button>
+        </div>
+        <div id="users-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;">
+            <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:0.06em;">Nouvel utilisateur</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end;">
+                <div>
+                    <label style="font-size:0.65rem;color:var(--text-muted);display:block;margin-bottom:3px;">Nom d'utilisateur</label>
+                    <input id="new-user-name" type="text" placeholder="Identifiant" style="padding:8px 10px;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);width:100%;">
+                </div>
+                <div>
+                    <label style="font-size:0.65rem;color:var(--text-muted);display:block;margin-bottom:3px;">Mot de passe</label>
+                    <input id="new-user-pass" type="password" placeholder="Mot de passe" style="padding:8px 10px;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);width:100%;">
+                </div>
+                <div>
+                    <label style="font-size:0.65rem;color:var(--text-muted);display:block;margin-bottom:3px;">Rôle</label>
+                    <select id="new-user-role" style="padding:8px 10px;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                        <option value="user">Utilisateur</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button onclick="createUser()" style="width:auto;padding:8px 14px;font-size:0.8rem;background:var(--primary);color:white;border-radius:8px;white-space:nowrap;">+ Créer</button>
+            </div>
+            <p id="users-error" style="display:none;color:#f87171;font-size:0.75rem;margin:6px 0 0;"></p>
         </div>
     </div>
 </div>
@@ -1143,6 +1181,24 @@ L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 let contacts = [];
+let authToken  = '';
+let currentUser = null;
+
+// Wrapper fetch avec Authorization header
+async function authFetch(url, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        // Token expiré → retour login
+        authToken = '';
+        currentUser = null;
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('main-content').classList.remove('visible');
+        throw new Error('Session expirée, veuillez vous reconnecter');
+    }
+    return res;
+}
 let markers = {};
 let markerLayerGroup = L.layerGroup().addTo(map);
 
@@ -1219,7 +1275,7 @@ function toast(msg, type = 'success', duration = 3500) {
 // AUTH
 // ══════════════════════════════════════════════
 async function login() {
-    const btn = document.getElementById('login-btn');
+    const btn   = document.getElementById('login-btn');
     const error = document.getElementById('login-error');
     btn.textContent = 'Connexion...';
     btn.disabled = true;
@@ -1229,14 +1285,17 @@ async function login() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                username: document.getElementById('login-username').value,
+                username: document.getElementById('login-username').value.trim(),
                 password: document.getElementById('login-password').value
             })
         });
         const data = await res.json();
         if (data.success) {
+            authToken   = data.token;
+            currentUser = { username: data.username, role: data.role };
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('main-content').classList.add('visible');
+            updateUserBadge();
             await loadContacts();
             setTimeout(() => map.invalidateSize(), 100);
         } else {
@@ -1245,7 +1304,7 @@ async function login() {
             btn.textContent = 'Se connecter';
             btn.disabled = false;
         }
-    } catch {
+    } catch(e) {
         error.textContent = 'Erreur de connexion au serveur';
         error.style.display = 'block';
         btn.textContent = 'Se connecter';
@@ -1253,19 +1312,37 @@ async function login() {
     }
 }
 
+function updateUserBadge() {
+    const el = document.getElementById('user-badge');
+    if (!el || !currentUser) return;
+    el.textContent = currentUser.username;
+    el.title = 'Rôle : ' + currentUser.role;
+    const adminEl = document.getElementById('admin-only');
+    if (adminEl) adminEl.style.display = currentUser.role === 'admin' ? 'block' : 'none';
+}
+
+function logout() {
+    authToken = '';
+    currentUser = null;
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('main-content').classList.remove('visible');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+}
+
 // ══════════════════════════════════════════════
 // LOAD / REFRESH
 // ══════════════════════════════════════════════
 async function loadContacts() {
     try {
-        const gcRes = await fetch('/api/geocache');
+        const gcRes = await authFetch('/api/geocache');
         if (gcRes.ok) {
             const gcData = await gcRes.json();
             gcData.forEach(e => {
                 if (e.city) geocodeCache[e.city.toLowerCase().trim()] = { lat: e.lat, lon: e.lon, fullName: e.fullName || '' };
             });
         }
-        const res = await fetch('/api/contacts');
+        const res = await authFetch('/api/contacts');
         const data = await res.json();
         contacts = Array.isArray(data) ? sanitizeContacts(data) : [];
         if (!Array.isArray(data)) toast('Erreur chargement contacts (serveur)', 'error');
@@ -1292,7 +1369,7 @@ async function persistGeocache() {
         .filter(([k, v]) => v && !k.startsWith('region_'))
         .map(([city, v]) => ({ city, lat: v.lat, lon: v.lon, fullName: v.fullName || '' }));
     if (entries.length === 0) return;
-    try { await fetch('/api/geocache', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entries) }); }
+    try { await authFetch('/api/geocache', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entries) }); }
     catch (e) { console.warn('Geocache persist error:', e); }
 }
 
@@ -2377,7 +2454,7 @@ async function saveToServer() {
         console.error('saveToServer bloqué : contacts vide alors que UI indique des contacts');
         throw new Error('Sauvegarde bloquée : contacts vide');
     }
-    const res = await fetch('/api/contacts', {
+    const res = await authFetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(contacts)
@@ -2838,7 +2915,7 @@ async function openDbPanel() {
     if (countEl) countEl.textContent = `${contacts.length} contacts`;
     // Charger les backups disponibles
     try {
-        const res = await fetch('/api/backups');
+        const res = await authFetch('/api/backups');
         if (res.ok) {
             const backups = await res.json();
             const sel = document.getElementById('db-backup-select');
@@ -3009,6 +3086,97 @@ function dbSetSort(col) {
 }
 
 // ══════════════════════════════════════════════
+// USERS MANAGEMENT
+// ══════════════════════════════════════════════
+async function openUsersPanel() {
+    document.getElementById('users-panel').style.display = 'flex';
+    await loadUsersList();
+}
+
+function closeUsersPanel() {
+    document.getElementById('users-panel').style.display = 'none';
+}
+
+async function loadUsersList() {
+    const list = document.getElementById('users-list');
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Chargement...</p>';
+    try {
+        const res  = await authFetch('/api/users');
+        const users = await res.json();
+        list.innerHTML = '';
+        users.forEach(u => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;';
+            const roleBadge = u.role === 'admin'
+                ? '<span style="font-size:0.65rem;padding:2px 7px;background:rgba(99,102,241,0.2);color:#818cf8;border-radius:8px;border:1px solid rgba(99,102,241,0.3);">Admin</span>'
+                : '<span style="font-size:0.65rem;padding:2px 7px;background:rgba(100,116,139,0.2);color:#94a3b8;border-radius:8px;border:1px solid rgba(100,116,139,0.2);">Utilisateur</span>';
+            const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('fr-FR') : 'Jamais';
+            row.innerHTML = `
+                <div style="flex:1;">
+                    <div style="font-weight:600;font-size:0.85rem;">${u.username} ${roleBadge}</div>
+                    <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Dernière connexion : ${lastLogin}</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button data-uid="${u._id}" data-uname="${u.username}" onclick="changePassword(this)" style="width:auto;padding:4px 10px;font-size:0.72rem;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;">🔑</button>
+                    <button data-uid="${u._id}" data-uname="${u.username}" onclick="deleteUser(this)" style="width:auto;padding:4px 10px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;">🗑</button>
+                </div>`;
+            list.appendChild(row);
+        });
+        if (users.length === 0) list.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Aucun utilisateur</p>';
+    } catch(e) {
+        list.innerHTML = '<p style="color:#f87171;font-size:0.8rem;">Erreur chargement</p>';
+    }
+}
+
+async function createUser() {
+    const name = document.getElementById('new-user-name').value.trim();
+    const pass = document.getElementById('new-user-pass').value;
+    const role = document.getElementById('new-user-role').value;
+    const err  = document.getElementById('users-error');
+    err.style.display = 'none';
+
+    if (!name || !pass) { err.textContent = 'Nom et mot de passe requis'; err.style.display = 'block'; return; }
+    if (pass.length < 6) { err.textContent = 'Mot de passe : 6 caractères minimum'; err.style.display = 'block'; return; }
+
+    try {
+        const res  = await authFetch('/api/users', { method: 'POST', body: JSON.stringify({ username: name, password: pass, role }) });
+        const data = await res.json();
+        if (!res.ok) { err.textContent = data.error || 'Erreur création'; err.style.display = 'block'; return; }
+        document.getElementById('new-user-name').value = '';
+        document.getElementById('new-user-pass').value = '';
+        toast('Utilisateur créé ✓');
+        await loadUsersList();
+    } catch(e) { err.textContent = 'Erreur serveur'; err.style.display = 'block'; }
+}
+
+async function deleteUser(btn) {
+    const uid   = btn.dataset.uid;
+    const uname = btn.dataset.uname;
+    if (!confirm('Supprimer l'utilisateur ' + uname + ' ?')) return;
+    try {
+        const res  = await authFetch('/api/users/' + uid, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) { toast(data.error || 'Erreur suppression', 'error'); return; }
+        toast('Utilisateur supprimé');
+        await loadUsersList();
+    } catch(e) { toast('Erreur serveur', 'error'); }
+}
+
+async function changePassword(btn) {
+    const uid   = btn.dataset.uid;
+    const uname = btn.dataset.uname;
+    const newPass = prompt('Nouveau mot de passe pour ' + uname + ' (6 car. min) :');
+    if (!newPass) return;
+    if (newPass.length < 6) { toast('Mot de passe trop court', 'error'); return; }
+    try {
+        const res  = await authFetch('/api/users/' + uid + '/password', { method: 'PUT', body: JSON.stringify({ password: newPass }) });
+        const data = await res.json();
+        if (!res.ok) { toast(data.error || 'Erreur', 'error'); return; }
+        toast('Mot de passe mis à jour ✓');
+    } catch(e) { toast('Erreur serveur', 'error'); }
+}
+
+// ══════════════════════════════════════════════
 // RESTORE BACKUP
 // ══════════════════════════════════════════════
 async function restoreBackup() {
@@ -3017,7 +3185,7 @@ async function restoreBackup() {
     if (!id) { toast('Sélectionne un backup', 'warning'); return; }
     if (!confirm('Restaurer ce backup ? Les contacts actuels seront remplacés.')) return;
     try {
-        const res = await fetch(`/api/backups/restore/${id}`, { method: 'POST' });
+        const res = await authFetch(`/api/backups/restore/${id}`, { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         toast(`Backup restauré : ${data.count} contacts ✓`);
