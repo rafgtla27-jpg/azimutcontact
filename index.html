@@ -1189,7 +1189,7 @@ window.onDel = function(btn) {
     if (!c) { toast('Contact introuvable', 'error'); return; }
     if (!confirm('Supprimer ' + c.firstName + ' ' + (c.lastName||'') + ' ?')) return;
     contacts = contacts.filter(x => String(x.id) !== id);
-    saveToServer().then(() => { refreshUI(); toast('Contact supprimé'); }).catch(err => toast(err.message,'error'));
+    saveToServer().then(() => { toast('Contact supprimé'); }).catch(err => toast(err.message,'error'));
 };
 window.onFocus = function(btn) {
     const el = btn.closest('[data-id]');
@@ -1432,7 +1432,10 @@ map.on('click', () => {
     if (currentDeptDisplay) resetMapView();
 });
 
+let _filterDataRunning = false;
 async function filterData() {
+    if (_filterDataRunning) return;
+    _filterDataRunning = true;
     currentPage = 1;
     currentRegion  = document.getElementById('region-select').value;
     currentCompany = document.getElementById('company-select').value;
@@ -1507,6 +1510,7 @@ async function filterData() {
     if (totalEl) totalEl.textContent = filtered.length;
     if (cityEl)  cityEl.textContent  = new Set(filtered.map(c => c.city).filter(Boolean)).size;
     
+    _filterDataRunning = false;
 }
 
 // ══════════════════════════════════════════════
@@ -2079,7 +2083,7 @@ function inlineEditCard(div) {
         try {
             await saveToServer();
             toast('Contact mis à jour ✓');
-            refreshUI(); // reconstruit toute la liste proprement
+            // refreshUI est déclenché par le socket contactsUpdated
         } catch(err) {
             toast('Erreur sauvegarde : ' + err.message, 'error');
             btn.disabled = false;
