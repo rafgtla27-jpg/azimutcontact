@@ -1384,6 +1384,7 @@ function refreshUI() {
 
 socket.on('contactsUpdated', (newContacts) => {
     contacts = Array.isArray(newContacts) ? sanitizeContacts(newContacts) : [];
+    _filterDataRunning = false;
     refreshUI();
 });
 
@@ -1612,11 +1613,19 @@ async function loadRegions() {
                             e.target.setStyle({ fillOpacity: 0.08, weight: 1.5 });
                     },
                     click: e => {
-                        currentRegion = feature.properties.nom;
-                        document.getElementById('region-select').value = currentRegion;
-                        map.fitBounds(e.target.getBounds(), { padding: [20, 20] });
-                        filterData();
-                        showDepts(feature.properties.code);
+                        if (currentRegion === feature.properties.nom) {
+                            // Désélectionner : revenir à "toutes les régions"
+                            currentRegion = 'all';
+                            document.getElementById('region-select').value = 'all';
+                            filterData();
+                            hideDepts();
+                        } else {
+                            currentRegion = feature.properties.nom;
+                            document.getElementById('region-select').value = currentRegion;
+                            map.fitBounds(e.target.getBounds(), { padding: [20, 20] });
+                            filterData();
+                            showDepts(feature.properties.code);
+                        }
                     }
                 });
                 layer.bindTooltip(feature.properties.nom, { permanent: false, sticky: true, className: 'region-tooltip' });
@@ -1648,6 +1657,10 @@ const REGION_DEPTS = {
     '93':['04','05','06','13','83','84'],
     '94':['2A','2B']
 };
+
+function hideDepts() {
+    if (currentDeptDisplay) { map.removeLayer(currentDeptDisplay); currentDeptDisplay = null; }
+}
 
 function showDepts(regionCode) {
     if (!deptLayer) return;
@@ -2160,7 +2173,8 @@ function inlineEditCard(div) {
         try {
             await saveToServer();
             toast('Contact mis à jour ✓');
-            // refreshUI est déclenché par le socket contactsUpdated
+            _filterDataRunning = false; // reset le guard au cas où
+            refreshUI();
         } catch(err) {
             toast('Erreur sauvegarde : ' + err.message, 'error');
             btn.disabled = false;
@@ -3152,7 +3166,7 @@ async function createUser() {
 async function deleteUser(btn) {
     const uid   = btn.dataset.uid;
     const uname = btn.dataset.uname;
-    if (!confirm('Supprimer l'utilisateur ' + uname + ' ?')) return;
+    if (!confirm('Supprimer l\'utilisateur ' + uname + ' ?')) return;
     try {
         const res  = await authFetch('/api/users/' + uid, { method: 'DELETE' });
         const data = await res.json();
