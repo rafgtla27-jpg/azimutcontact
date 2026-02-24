@@ -83,8 +83,20 @@ setInterval(() => {
 mongoose.connection.once('open', async () => {
     const count = await User.countDocuments();
     if (count === 0) {
+        // Première fois : créer l'admin
         await User.create({ username: 'AzimutTrans', password: hashPassword('Azimutt73'), role: 'admin' });
         console.log('Admin créé : AzimutTrans / Azimutt73');
+    } else {
+        // Migrer les anciens hash bcrypt (format sans ':') vers le nouveau format
+        const users = await User.find({});
+        for (const u of users) {
+            if (!u.password.includes(':')) {
+                // Hash bcrypt détecté → réinitialiser avec le nouveau format
+                const newPass = hashPassword('Azimutt73');
+                await User.updateOne({ _id: u._id }, { password: newPass });
+                console.log('Migration hash pour ' + u.username + ' → mot de passe réinitialisé : Azimutt73');
+            }
+        }
     }
     setTimeout(runBackup, 5000);
 });
