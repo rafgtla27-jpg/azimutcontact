@@ -955,9 +955,16 @@
 <div id="db-panel">
     <div class="db-toolbar">
         <h2>🗄️ Gestion de la base</h2>
-        <input id="db-search" class="db-search-input" type="text" placeholder="Filtrer..." oninput="renderDbTable()">
-        <button onclick="dbSaveAll()" style="width:auto;padding:8px 16px;font-size:0.8rem;background:var(--success);">💾 Sauvegarder</button>
-        <button onclick="closeDbPanel()" style="width:auto;padding:8px 14px;font-size:0.8rem;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);">✕ Fermer</button>
+        <input id="db-search" type="text" placeholder="Filtrer..." oninput="renderDbTable()"
+               style="flex:1;max-width:220px;padding:7px 12px;font-size:0.8rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+        <span id="db-count" style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;"></span>
+        <div id="db-backup-row" style="display:none;align-items:center;gap:6px;">
+            <select id="db-backup-select" style="padding:6px 10px;font-size:0.78rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                <option value="">Restaurer un backup...</option>
+            </select>
+            <button onclick="restoreBackup()" style="width:auto;padding:7px 12px;font-size:0.78rem;background:#92400e;color:#fbbf24;border:1px solid #b45309;border-radius:8px;">↩ Restaurer</button>
+        </div>
+        <button onclick="closeDbPanel()" style="width:auto;padding:8px 14px;font-size:0.8rem;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border);border-radius:8px;">✕ Fermer</button>
     </div>
     <div class="db-table-wrap">
         <table class="db-table" id="db-table">
@@ -1117,13 +1124,25 @@ const FRENCH_REGIONS = [
 ];
 
 // ══════════════════════════════════════════════
-// CONTACT ACTION GLOBAL MAP (immune aux bugs de closure et d'attrs)
+// ACTIONS GLOBALES - lecture d'ID via DOM, aucune interpolation
 // ══════════════════════════════════════════════
-window.cmap = {
-    edit:  (id) => { map.closePopup(); editContact(id); },
-    del:   (id) => deleteContact(id),
-    focus: (id) => focusOnMap(id)
+window.onEdit = function(btn) {
+    const id = btn.closest('[data-id]').dataset.id;
+    map.closePopup();
+    editContact(id);
 };
+window.onDel = function(btn) {
+    const id = btn.closest('[data-id]').dataset.id;
+    deleteContact(id);
+};
+window.onFocus = function(btn) {
+    const id = btn.closest('[data-id]').dataset.id;
+    focusOnMap(id);
+};
+// Versions pour popups Leaflet (pas de data-id parent disponible)
+window.popupEdit = function(btn) { map.closePopup(); editContact(btn.dataset.cid); };
+window.popupDel  = function(btn) { deleteContact(btn.dataset.cid); };
+window.popupDel  = function(btn) { deleteContact(btn.dataset.cid); };
 
 // ══════════════════════════════════════════════
 // TOAST
@@ -1663,8 +1682,8 @@ async function addMarkerToMap(contact) {
             ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
             <div style="font-size:0.8rem;color:#94a3b8;">${locationDisplay}</div>
             <div style="margin-top:10px;display:flex;gap:6px;">
-                <button onclick="cmap.edit('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                <button onclick="cmap.del('${contact.id}')"  style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                <button data-cid="${contact.id}" onclick="popupEdit(this)" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                <button data-cid="${contact.id}" onclick="popupDel(this)"  style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
             </div>
         </div>
     `);
@@ -1724,8 +1743,8 @@ async function addRegionFloatingMarker(group) {
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 région uniquement</div>
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button onclick="cmap.edit('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                    <button onclick="cmap.del('${c.id}')"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                    <button data-cid="${c.id}" onclick="popupEdit(this)" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button data-cid="${c.id}" onclick="popupDel(this)"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>`;
     }).join('');
@@ -1773,8 +1792,8 @@ function addCityClusterMarker(group) {
                 ${c.email ? `<div style="font-size:0.72rem;color:#94a3b8;">📧 ${c.email}</div>` : ''}
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button onclick="cmap.edit('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                    <button onclick="cmap.del('${c.id}')"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                    <button data-cid="${c.id}" onclick="popupEdit(this)" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button data-cid="${c.id}" onclick="popupDel(this)"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>
         `;
@@ -1838,7 +1857,6 @@ function renderContacts(filtered) {
         div.dataset.id = contact.id;
         div.style.setProperty('--company-color', color);
 
-        const cid = contact.id;
         div.innerHTML = `
             <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
             <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
@@ -1846,9 +1864,9 @@ function renderContacts(filtered) {
             ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
             <p>${locationDisplay}</p>
             <div class="contact-actions">
-                <button class="btn-sm btn-success" onclick="event.stopPropagation();cmap.edit('${cid}')">✏️ Modifier</button>
-                <button class="btn-sm btn-danger"  onclick="event.stopPropagation();cmap.del('${cid}')">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="event.stopPropagation();cmap.focus('${cid}')">🗺</button>` : ''}
+                <button class="btn-sm btn-success" onclick="event.stopPropagation();onEdit(this)">✏️ Modifier</button>
+                <button class="btn-sm btn-danger"  onclick="event.stopPropagation();onDel(this)">🗑 Supprimer</button>
+                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="event.stopPropagation();onFocus(this)">🗺</button>` : ''}
             </div>
         `;
 
@@ -1857,11 +1875,6 @@ function renderContacts(filtered) {
             if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0) {
                 highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
             }
-        });
-
-        div.addEventListener('dblclick', (e) => {
-            e.stopPropagation();
-            showContactInfo(contact);
         });
 
         container.appendChild(div);
@@ -1987,8 +2000,9 @@ function showContactInfo(c) {
 
     document.body.appendChild(ov);
     ov.querySelector('#ci-close').onclick = () => ov.remove();
-    ov.querySelector('#ci-edit').onclick   = () => { ov.remove(); editContact(c.id); };
-    ov.querySelector('#ci-delete').onclick = () => { ov.remove(); deleteContact(c.id); };
+    const ciId = c.id;
+    ov.querySelector('#ci-edit').onclick   = () => { ov.remove(); editContact(ciId); };
+    ov.querySelector('#ci-delete').onclick = () => { ov.remove(); deleteContact(ciId); };
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
 }
 
@@ -2011,7 +2025,7 @@ function renderNoLocationContacts(contactsWithoutLocation) {
     list.innerHTML = contactsWithoutLocation.map(contact => {
         const color = getCompanyColor(contact.company);
         return `
-            <div class="no-location-item" onclick="editContact('${contact.id}')">
+            <div class="no-location-item" data-id="${contact.id}" onclick="onEdit(this)">
                 <h4>${contact.firstName} ${contact.lastName || ''}</h4>
                 <p style="color:${color};">🏢 ${contact.company || '—'}</p>
                 ${contact.deliveryZone ? `<p>🚚 ${contact.deliveryZone}</p>` : ''}
@@ -2154,6 +2168,11 @@ async function deleteContact(id) {
 }
 
 async function saveToServer() {
+    // Garde-fou : refus de sauvegarder un tableau vide sauf si on avait 0 contacts avant
+    if (contacts.length === 0 && document.getElementById('total-contacts').textContent > 0) {
+        console.error('saveToServer bloqué : contacts vide alors que UI indique des contacts');
+        throw new Error('Sauvegarde bloquée : contacts vide');
+    }
     const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2605,33 +2624,44 @@ const DB_COLS = [
 
 let dbSortCol = 'firstName';
 let dbSortDir = 1;
-let dbEdited = {};
 
-function openDbPanel() {
-    dbEdited = {};
+async function openDbPanel() {
     document.getElementById('db-search').value = '';
     document.getElementById('db-panel').classList.add('open');
     renderDbTable();
+    // Afficher le count
+    const countEl = document.getElementById('db-count');
+    if (countEl) countEl.textContent = `${contacts.length} contacts`;
+    // Charger les backups disponibles
+    try {
+        const res = await fetch('/api/backups');
+        if (res.ok) {
+            const backups = await res.json();
+            const sel = document.getElementById('db-backup-select');
+            if (sel && backups.length > 0) {
+                sel.innerHTML = '<option value="">Restaurer un backup...</option>' +
+                    backups.map(b => {
+                        const d = new Date(b.createdAt);
+                        return `<option value="${b._id}">${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}</option>`;
+                    }).join('');
+                sel.closest('div').style.display = 'flex';
+            }
+        }
+    } catch(e) {}
 }
 
 function closeDbPanel() {
-    if (Object.keys(dbEdited).length > 0) {
-        if (!confirm('Modifications non sauvegardées. Fermer quand même ?')) return;
-    }
     document.getElementById('db-panel').classList.remove('open');
 }
 
 function renderDbTable() {
     const q = (document.getElementById('db-search').value || '').toLowerCase();
-    let rows = contacts.filter(c => {
-        if (!q) return true;
-        return DB_COLS.some(col => (String(c[col.key] || '')).toLowerCase().includes(q));
-    });
-    rows = [...rows].sort((a, b) => {
-        const va = String(a[dbSortCol] || '').toLowerCase();
-        const vb = String(b[dbSortCol] || '').toLowerCase();
-        return va.localeCompare(vb, 'fr') * dbSortDir;
-    });
+    let rows = contacts.filter(c =>
+        !q || DB_COLS.some(col => (String(c[col.key] || '')).toLowerCase().includes(q))
+    );
+    rows = [...rows].sort((a, b) =>
+        String(a[dbSortCol] || '').toLowerCase().localeCompare(String(b[dbSortCol] || '').toLowerCase(), 'fr') * dbSortDir
+    );
 
     // THEAD
     const thead = document.getElementById('db-thead');
@@ -2649,15 +2679,15 @@ function renderDbTable() {
     headerRow.appendChild(thAct);
     thead.appendChild(headerRow);
 
-    // TBODY — createElement uniquement, aucun innerHTML
+    // TBODY
     const tbody = document.getElementById('db-tbody');
     tbody.innerHTML = '';
 
-    // Bouton "Nouveau contact"
+    // Ligne "Nouveau contact"
     const addRow = document.createElement('tr');
     const addTd = document.createElement('td');
     addTd.colSpan = DB_COLS.length + 1;
-    addTd.style.cssText = 'padding:8px;';
+    addTd.style.padding = '8px';
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ Nouveau contact';
     addBtn.style.cssText = 'width:auto;padding:6px 16px;font-size:0.78rem;background:var(--primary);color:white;border-radius:8px;';
@@ -2668,8 +2698,11 @@ function renderDbTable() {
 
     rows.forEach(c => {
         const tr = document.createElement('tr');
-        // Inputs pour chaque colonne
-        const inputs = {};
+        tr.dataset.id = c.id;    // L'ID est sur le tr, lisible par les boutons
+
+        // Map des inputs pour lecture au moment du save
+        const inputsMap = {};
+
         DB_COLS.forEach(col => {
             const td = document.createElement('td');
             if (col.type === 'bool') {
@@ -2678,8 +2711,7 @@ function renderDbTable() {
                 cb.type = 'checkbox';
                 cb.checked = !!c[col.key];
                 cb.style.cssText = 'width:auto;cursor:pointer;accent-color:var(--primary);';
-                cb.addEventListener('change', () => { if (!dbEdited[c.id]) dbEdited[c.id] = {}; dbEdited[c.id][col.key] = cb.checked; });
-                inputs[col.key] = cb;
+                inputsMap[col.key] = cb;
                 td.appendChild(cb);
             } else {
                 const inp = document.createElement('input');
@@ -2687,40 +2719,69 @@ function renderDbTable() {
                 inp.value = c[col.key] || '';
                 inp.title = inp.value;
                 inp.style.cssText = 'background:transparent;border:1px solid transparent;color:var(--text);padding:3px 6px;border-radius:4px;font-size:0.78rem;width:100%;min-width:80px;';
-                inp.addEventListener('focus', () => inp.style.borderColor = 'var(--primary)');
-                inp.addEventListener('blur',  () => { inp.style.borderColor = 'transparent'; if (!dbEdited[c.id]) dbEdited[c.id] = {}; dbEdited[c.id][col.key] = inp.value; });
-                inputs[col.key] = inp;
+                inp.addEventListener('focus', () => { inp.style.borderColor = 'var(--primary)'; inp.style.background = 'var(--card-bg)'; });
+                inp.addEventListener('blur',  () => { inp.style.borderColor = 'transparent'; inp.style.background = 'transparent'; });
+                inputsMap[col.key] = inp;
                 td.appendChild(inp);
             }
             tr.appendChild(td);
         });
 
-        // Actions
+        // Cellule Actions
         const tdAct = document.createElement('td');
-        const wrap = document.createElement('div');
+        const wrap  = document.createElement('div');
         wrap.className = 'db-row-actions';
 
         const saveBtn = document.createElement('button');
         saveBtn.textContent = '💾';
-        saveBtn.className = 'btn-sm btn-success';
+        saveBtn.className   = 'btn-sm btn-success';
+        saveBtn.title       = 'Sauvegarder ce contact';
         saveBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
-        saveBtn.addEventListener('click', () => {
-            // Lire les valeurs ACTUELLES des inputs (pas dbEdited qui peut être vide)
-            const edits = {};
+        saveBtn.addEventListener('click', async () => {
+            const contactId = tr.dataset.id;
+            const idx = contacts.findIndex(x => x.id === contactId);
+            if (idx < 0) { toast('Contact introuvable', 'error'); return; }
+            const oldCity = contacts[idx].city || '';
+            // Lire toutes les valeurs depuis les inputs de cette ligne
             DB_COLS.forEach(col => {
-                const inp = inputs[col.key];
+                const inp = inputsMap[col.key];
                 if (!inp) return;
-                edits[col.key] = col.type === 'bool' ? inp.checked : inp.value;
+                contacts[idx][col.key] = col.type === 'bool' ? inp.checked : inp.value.trim();
             });
-            dbEdited[c.id] = edits;
-            dbSaveRow(c.id);
+            // Regéocoder seulement si la ville a changé
+            const newCity = contacts[idx].city || '';
+            if (newCity && newCity.toLowerCase() !== oldCity.toLowerCase()) {
+                toast('Géolocalisation...', 'success');
+                const coords = await geocode(newCity);
+                if (coords) {
+                    contacts[idx].lat = coords.lat;
+                    contacts[idx].lon = coords.lon;
+                    contacts[idx].fullName = coords.fullName;
+                    contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
+                }
+            }
+            await saveToServer();
+            refreshUI();
+            renderDbTable();
+            toast('Contact sauvegardé ✓');
         });
 
         const delBtn = document.createElement('button');
         delBtn.textContent = '🗑';
-        delBtn.className = 'btn-sm btn-danger';
+        delBtn.className   = 'btn-sm btn-danger';
+        delBtn.title       = 'Supprimer ce contact';
         delBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
-        delBtn.addEventListener('click', () => deleteContact(c.id));
+        delBtn.addEventListener('click', async () => {
+            const contactId = tr.dataset.id;
+            const c2 = contacts.find(x => x.id === contactId);
+            if (!c2) { toast('Contact introuvable', 'error'); return; }
+            if (!confirm(`Supprimer ${c2.firstName} ${c2.lastName || ''} ?`)) return;
+            contacts = contacts.filter(x => x.id !== contactId);
+            await saveToServer();
+            refreshUI();
+            renderDbTable();
+            toast('Contact supprimé');
+        });
 
         wrap.appendChild(saveBtn);
         wrap.appendChild(delBtn);
@@ -2735,63 +2796,21 @@ function dbSetSort(col) {
     renderDbTable();
 }
 
-function dbEdit(id, key, value) {
-    if (!dbEdited[id]) dbEdited[id] = {};
-    dbEdited[id][key] = value;
-}
-
-function dbEditBool(id, key, value) {
-    if (!dbEdited[id]) dbEdited[id] = {};
-    dbEdited[id][key] = value;
-}
-
-async function dbSaveRow(id) {
-    const edits = dbEdited[id];
-    if (!edits || Object.keys(edits).length === 0) { toast('Aucune modification détectée', 'warning'); return; }
-    const idx = contacts.findIndex(c => c.id === id);
-    if (idx < 0) { toast('Contact introuvable', 'error'); return; }
-    const oldCity = contacts[idx].city;
-    contacts[idx] = { ...contacts[idx], ...edits };
-    // Regéocoder seulement si la ville a changé
-    if (edits.city && edits.city.trim() !== (oldCity || '').trim()) {
-        toast('Géolocalisation en cours...', 'success');
-        const coords = await geocode(edits.city);
-        if (coords) {
-            contacts[idx].lat = coords.lat;
-            contacts[idx].lon = coords.lon;
-            contacts[idx].fullName = coords.fullName;
-            contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
-        }
-    }
-    delete dbEdited[id];
-    await saveToServer();
-    refreshUI();
-    renderDbTable();
-    toast('Contact sauvegardé ✓');
-}
-
-async function dbSaveAll() {
-    if (Object.keys(dbEdited).length === 0) { toast('Aucune modification en attente', 'warning'); return; }
-    for (const [id, edits] of Object.entries(dbEdited)) {
-        const idx = contacts.findIndex(c => c.id === id);
-        if (idx < 0) continue;
-        const oldCity = contacts[idx].city;
-        contacts[idx] = { ...contacts[idx], ...edits };
-        if (edits.city && edits.city.trim() !== (oldCity || '').trim()) {
-            const coords = await geocode(edits.city);
-            if (coords) {
-                contacts[idx].lat = coords.lat;
-                contacts[idx].lon = coords.lon;
-                contacts[idx].fullName = coords.fullName;
-                contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
-            }
-        }
-    }
-    dbEdited = {};
-    await saveToServer();
-    refreshUI();
-    renderDbTable();
-    toast(`${Object.keys(dbEdited).length || 'Tous les'} contacts sauvegardés ✓`);
+// ══════════════════════════════════════════════
+// RESTORE BACKUP
+// ══════════════════════════════════════════════
+async function restoreBackup() {
+    const sel = document.getElementById('db-backup-select');
+    const id  = sel ? sel.value : '';
+    if (!id) { toast('Sélectionne un backup', 'warning'); return; }
+    if (!confirm('Restaurer ce backup ? Les contacts actuels seront remplacés.')) return;
+    try {
+        const res = await fetch(`/api/backups/restore/${id}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        toast(`Backup restauré : ${data.count} contacts ✓`);
+        closeDbPanel();
+    } catch(e) { toast('Erreur restauration : ' + e.message, 'error'); }
 }
 
 // ══════════════════════════════════════════════
