@@ -1117,21 +1117,13 @@ const FRENCH_REGIONS = [
 ];
 
 // ══════════════════════════════════════════════
-// GLOBAL POPUP BUTTON DELEGATION
+// CONTACT ACTION GLOBAL MAP (immune aux bugs de closure et d'attrs)
 // ══════════════════════════════════════════════
-document.addEventListener('click', (e) => {
-    const editBtn   = e.target.closest('[data-popup-edit]');
-    const deleteBtn = e.target.closest('[data-popup-delete]');
-    if (editBtn) {
-        e.stopPropagation();
-        map.closePopup();
-        editContact(editBtn.dataset.popupEdit);
-    }
-    if (deleteBtn) {
-        e.stopPropagation();
-        deleteContact(deleteBtn.dataset.popupDelete);
-    }
-});
+window.cmap = {
+    edit:  (id) => { map.closePopup(); editContact(id); },
+    del:   (id) => deleteContact(id),
+    focus: (id) => focusOnMap(id)
+};
 
 // ══════════════════════════════════════════════
 // TOAST
@@ -1671,8 +1663,8 @@ async function addMarkerToMap(contact) {
             ${contact.phone  ? `<div style="font-size:0.8rem;margin-bottom:3px;color:#cbd5e1;">📞 ${contact.phone}</div>` : ''}
             <div style="font-size:0.8rem;color:#94a3b8;">${locationDisplay}</div>
             <div style="margin-top:10px;display:flex;gap:6px;">
-                <button data-popup-edit="${contact.id}" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                <button data-popup-delete="${contact.id}" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                <button onclick="cmap.edit('${contact.id}')" style="flex:1;padding:5px 8px;font-size:0.72rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                <button onclick="cmap.del('${contact.id}')"  style="flex:1;padding:5px 8px;font-size:0.72rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
             </div>
         </div>
     `);
@@ -1732,8 +1724,8 @@ async function addRegionFloatingMarker(group) {
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 région uniquement</div>
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button data-popup-edit="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                    <button data-popup-delete="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                    <button onclick="cmap.edit('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button onclick="cmap.del('${c.id}')"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>`;
     }).join('');
@@ -1781,8 +1773,8 @@ function addCityClusterMarker(group) {
                 ${c.email ? `<div style="font-size:0.72rem;color:#94a3b8;">📧 ${c.email}</div>` : ''}
                 ${c.phone ? `<div style="font-size:0.72rem;color:#94a3b8;">📞 ${c.phone}</div>` : ''}
                 <div style="margin-top:5px;display:flex;gap:4px;">
-                    <button data-popup-edit="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
-                    <button data-popup-delete="${c.id}" style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
+                    <button onclick="cmap.edit('${c.id}')" style="padding:3px 8px;font-size:0.7rem;background:#166534;color:#4ade80;border:1px solid #15803d;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Modifier</button>
+                    <button onclick="cmap.del('${c.id}')"  style="padding:3px 8px;font-size:0.7rem;background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;">Supprimer</button>
                 </div>
             </div>
         `;
@@ -1846,6 +1838,7 @@ function renderContacts(filtered) {
         div.dataset.id = contact.id;
         div.style.setProperty('--company-color', color);
 
+        const cid = contact.id;
         div.innerHTML = `
             <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
             <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
@@ -1853,23 +1846,13 @@ function renderContacts(filtered) {
             ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
             <p>${locationDisplay}</p>
             <div class="contact-actions">
-                <button class="btn-sm btn-success" data-cid="${contact.id}" data-action="edit">✏️ Modifier</button>
-                <button class="btn-sm btn-danger"  data-cid="${contact.id}" data-action="delete">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" data-cid="${contact.id}" data-action="focus">🗺</button>` : ''}
+                <button class="btn-sm btn-success" onclick="event.stopPropagation();cmap.edit('${cid}')">✏️ Modifier</button>
+                <button class="btn-sm btn-danger"  onclick="event.stopPropagation();cmap.del('${cid}')">🗑 Supprimer</button>
+                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="event.stopPropagation();cmap.focus('${cid}')">🗺</button>` : ''}
             </div>
         `;
 
-        div.addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-action][data-cid]');
-            if (btn) {
-                e.stopPropagation();
-                const id  = btn.dataset.cid;
-                const act = btn.dataset.action;
-                if (act === 'edit')   editContact(id);
-                if (act === 'delete') deleteContact(id);
-                if (act === 'focus')  focusOnMap(id);
-                return;
-            }
+        div.addEventListener('click', () => {
             if (contact.lat != null) focusOnMap(contact.id);
             if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0) {
                 highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
@@ -2650,37 +2633,99 @@ function renderDbTable() {
         return va.localeCompare(vb, 'fr') * dbSortDir;
     });
 
+    // THEAD
     const thead = document.getElementById('db-thead');
-    thead.innerHTML = '<tr>' + DB_COLS.map(col => {
-        const cls = col.key === dbSortCol ? (dbSortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
-        return `<th class="${cls}" onclick="dbSetSort('${col.key}')">${col.label}</th>`;
-    }).join('') + '<th>Actions</th></tr>';
+    thead.innerHTML = '';
+    const headerRow = document.createElement('tr');
+    DB_COLS.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col.label;
+        th.className = col.key === dbSortCol ? (dbSortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
+        th.addEventListener('click', () => dbSetSort(col.key));
+        headerRow.appendChild(th);
+    });
+    const thAct = document.createElement('th');
+    thAct.textContent = 'Actions';
+    headerRow.appendChild(thAct);
+    thead.appendChild(headerRow);
 
+    // TBODY — createElement uniquement, aucun innerHTML
     const tbody = document.getElementById('db-tbody');
     tbody.innerHTML = '';
+
+    // Bouton "Nouveau contact"
+    const addRow = document.createElement('tr');
+    const addTd = document.createElement('td');
+    addTd.colSpan = DB_COLS.length + 1;
+    addTd.style.cssText = 'padding:8px;';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Nouveau contact';
+    addBtn.style.cssText = 'width:auto;padding:6px 16px;font-size:0.78rem;background:var(--primary);color:white;border-radius:8px;';
+    addBtn.addEventListener('click', () => { closeDbPanel(); openModal(); });
+    addTd.appendChild(addBtn);
+    addRow.appendChild(addTd);
+    tbody.appendChild(addRow);
+
     rows.forEach(c => {
         const tr = document.createElement('tr');
-        tr.innerHTML = DB_COLS.map(col => {
+        // Inputs pour chaque colonne
+        const inputs = {};
+        DB_COLS.forEach(col => {
+            const td = document.createElement('td');
             if (col.type === 'bool') {
-                return `<td style="text-align:center;">
-                    <input type="checkbox" ${c[col.key] ? 'checked' : ''}
-                        style="width:auto;cursor:pointer;accent-color:var(--primary);"
-                        onchange="dbEditBool('${c.id}','${col.key}',this.checked)">
-                </td>`;
+                td.style.textAlign = 'center';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = !!c[col.key];
+                cb.style.cssText = 'width:auto;cursor:pointer;accent-color:var(--primary);';
+                cb.addEventListener('change', () => { if (!dbEdited[c.id]) dbEdited[c.id] = {}; dbEdited[c.id][col.key] = cb.checked; });
+                inputs[col.key] = cb;
+                td.appendChild(cb);
+            } else {
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.value = c[col.key] || '';
+                inp.title = inp.value;
+                inp.style.cssText = 'background:transparent;border:1px solid transparent;color:var(--text);padding:3px 6px;border-radius:4px;font-size:0.78rem;width:100%;min-width:80px;';
+                inp.addEventListener('focus', () => inp.style.borderColor = 'var(--primary)');
+                inp.addEventListener('blur',  () => { inp.style.borderColor = 'transparent'; if (!dbEdited[c.id]) dbEdited[c.id] = {}; dbEdited[c.id][col.key] = inp.value; });
+                inputs[col.key] = inp;
+                td.appendChild(inp);
             }
-            const val = (c[col.key] || '').toString().replace(/"/g, '&quot;');
-            return `<td title="${val}">
-                <input type="text" value="${val}"
-                    onchange="dbEdit('${c.id}','${col.key}',this.value)"
-                    onblur="dbEdit('${c.id}','${col.key}',this.value)">
-            </td>`;
-        }).join('');
-        tr.innerHTML += `<td>
-            <div class="db-row-actions">
-                <button onclick="dbSaveRow('${c.id}')" class="btn-sm btn-success" style="font-size:0.68rem;padding:3px 8px;">💾</button>
-                <button onclick="deleteContact('${c.id}')" class="btn-sm btn-danger" style="font-size:0.68rem;padding:3px 8px;">🗑</button>
-            </div>
-        </td>`;
+            tr.appendChild(td);
+        });
+
+        // Actions
+        const tdAct = document.createElement('td');
+        const wrap = document.createElement('div');
+        wrap.className = 'db-row-actions';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '💾';
+        saveBtn.className = 'btn-sm btn-success';
+        saveBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
+        saveBtn.addEventListener('click', () => {
+            // Lire les valeurs ACTUELLES des inputs (pas dbEdited qui peut être vide)
+            const edits = {};
+            DB_COLS.forEach(col => {
+                const inp = inputs[col.key];
+                if (!inp) return;
+                edits[col.key] = col.type === 'bool' ? inp.checked : inp.value;
+            });
+            dbEdited[c.id] = edits;
+            dbSaveRow(c.id);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑';
+        delBtn.className = 'btn-sm btn-danger';
+        delBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
+        delBtn.addEventListener('click', () => deleteContact(c.id));
+
+        wrap.appendChild(saveBtn);
+        wrap.appendChild(delBtn);
+        tdAct.appendChild(wrap);
+        tr.appendChild(tdAct);
         tbody.appendChild(tr);
     });
 }
@@ -2702,12 +2747,14 @@ function dbEditBool(id, key, value) {
 
 async function dbSaveRow(id) {
     const edits = dbEdited[id];
-    if (!edits) { toast('Aucune modification sur ce contact', 'warning'); return; }
+    if (!edits || Object.keys(edits).length === 0) { toast('Aucune modification détectée', 'warning'); return; }
     const idx = contacts.findIndex(c => c.id === id);
-    if (idx < 0) return;
+    if (idx < 0) { toast('Contact introuvable', 'error'); return; }
+    const oldCity = contacts[idx].city;
     contacts[idx] = { ...contacts[idx], ...edits };
-    // Regéocoder si la ville a changé
-    if (edits.city && edits.city !== contacts[idx].city) {
+    // Regéocoder seulement si la ville a changé
+    if (edits.city && edits.city.trim() !== (oldCity || '').trim()) {
+        toast('Géolocalisation en cours...', 'success');
         const coords = await geocode(edits.city);
         if (coords) {
             contacts[idx].lat = coords.lat;
@@ -2728,8 +2775,9 @@ async function dbSaveAll() {
     for (const [id, edits] of Object.entries(dbEdited)) {
         const idx = contacts.findIndex(c => c.id === id);
         if (idx < 0) continue;
+        const oldCity = contacts[idx].city;
         contacts[idx] = { ...contacts[idx], ...edits };
-        if (edits.city) {
+        if (edits.city && edits.city.trim() !== (oldCity || '').trim()) {
             const coords = await geocode(edits.city);
             if (coords) {
                 contacts[idx].lat = coords.lat;
@@ -2743,7 +2791,7 @@ async function dbSaveAll() {
     await saveToServer();
     refreshUI();
     renderDbTable();
-    toast(`Base sauvegardée ✓`);
+    toast(`${Object.keys(dbEdited).length || 'Tous les'} contacts sauvegardés ✓`);
 }
 
 // ══════════════════════════════════════════════
