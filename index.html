@@ -244,6 +244,56 @@
             gap: 6px;
             margin-top: 8px;
         }
+        /* ── INLINE EDIT ── */
+        .contact-item.editing {
+            border-left-color: var(--primary) !important;
+            background: var(--card-hover);
+            cursor: default;
+        }
+        .contact-item.editing:hover { transform: none; }
+        .inline-edit-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .inline-edit-grid .full { grid-column: 1 / -1; }
+        .inline-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .inline-field label {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .inline-field input {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 5px 8px;
+            font-size: 0.78rem;
+            font-family: 'Inter', sans-serif;
+            width: 100%;
+        }
+        .inline-field input:focus { outline: none; border-color: var(--primary); }
+        .inline-edit-checks {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .inline-edit-checks label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .inline-edit-checks input[type=checkbox] { width: auto; accent-color: var(--primary); }
+        .inline-edit-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
 
         /* ── BADGES ── */
         .scope-badge {
@@ -1127,22 +1177,28 @@ const FRENCH_REGIONS = [
 // ACTIONS GLOBALES - lecture d'ID via DOM, aucune interpolation
 // ══════════════════════════════════════════════
 window.onEdit = function(btn) {
-    const id = btn.closest('[data-id]').dataset.id;
-    map.closePopup();
-    editContact(id);
+    const el = btn.closest('[data-id]');
+    if (!el) { console.error('onEdit: pas de [data-id] parent'); return; }
+    inlineEditCard(el);
 };
 window.onDel = function(btn) {
-    const id = btn.closest('[data-id]').dataset.id;
-    deleteContact(id);
+    const el = btn.closest('[data-id]');
+    if (!el) { console.error('onDel: pas de [data-id] parent'); return; }
+    const id  = String(el.dataset.id);
+    const c   = contacts.find(x => String(x.id) === id);
+    if (!c) { toast('Contact introuvable', 'error'); return; }
+    if (!confirm('Supprimer ' + c.firstName + ' ' + (c.lastName||'') + ' ?')) return;
+    contacts = contacts.filter(x => String(x.id) !== id);
+    saveToServer().then(() => { refreshUI(); toast('Contact supprimé'); }).catch(err => toast(err.message,'error'));
 };
 window.onFocus = function(btn) {
-    const id = btn.closest('[data-id]').dataset.id;
-    focusOnMap(id);
+    const el = btn.closest('[data-id]');
+    if (!el) { console.error('onFocus: pas de [data-id] parent'); return; }
+    focusOnMap(String(el.dataset.id));
 };
 // Versions pour popups Leaflet (pas de data-id parent disponible)
-window.popupEdit = function(btn) { map.closePopup(); editContact(btn.dataset.cid); };
-window.popupDel  = function(btn) { deleteContact(btn.dataset.cid); };
-window.popupDel  = function(btn) { deleteContact(btn.dataset.cid); };
+window.popupEdit = function(btn) { map.closePopup(); editContact(String(btn.dataset.cid)); };
+window.popupDel  = function(btn) { deleteContact(String(btn.dataset.cid)); };
 
 // ══════════════════════════════════════════════
 // TOAST
@@ -1202,7 +1258,6 @@ async function login() {
 // ══════════════════════════════════════════════
 async function loadContacts() {
     try {
-        // Charger le cache géocodage persistant en premier
         const gcRes = await fetch('/api/geocache');
         if (gcRes.ok) {
             const gcData = await gcRes.json();
@@ -1212,7 +1267,7 @@ async function loadContacts() {
         }
         const res = await fetch('/api/contacts');
         const data = await res.json();
-        contacts = Array.isArray(data) ? data : [];
+        contacts = Array.isArray(data) ? sanitizeContacts(data) : [];
         if (!Array.isArray(data)) toast('Erreur chargement contacts (serveur)', 'error');
         refreshUI();
         await init();
@@ -1220,6 +1275,15 @@ async function loadContacts() {
         contacts = [];
         toast('Erreur lors du chargement des contacts', 'error');
     }
+}
+
+// Garantit que chaque contact a un id string stable
+function sanitizeContacts(arr) {
+    return arr.map(c => {
+        if (!c.id) c.id = 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        else c.id = String(c.id); // force string, élimine problèmes number/float
+        return c;
+    });
 }
 
 // Persiste les nouvelles entrées de géocodage en base
@@ -1242,7 +1306,7 @@ function refreshUI() {
 }
 
 socket.on('contactsUpdated', (newContacts) => {
-    contacts = Array.isArray(newContacts) ? newContacts : [];
+    contacts = Array.isArray(newContacts) ? sanitizeContacts(newContacts) : [];
     refreshUI();
 });
 
@@ -1836,47 +1900,7 @@ function renderContacts(filtered) {
     const page  = filtered.slice(start, start + PAGE_SIZE);
 
     page.forEach(contact => {
-        const color = getCompanyColor(contact.company);
-        let scopeBadges = '';
-        if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
-        if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
-
-        const isRegionOnly = !contact.city && contact.region;
-        const noLoc = (contact.lat == null && !isRegionOnly) ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
-        const regionOnlyBadge = isRegionOnly ? '<span class="no-loc-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;">🌍 Région</span>' : '';
-        const deliveryZoneBadge = contact.deliveryZone
-            ? `<span class="no-loc-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);font-weight:600;">🚚 ${contact.deliveryZone}</span>`
-            : '';
-
-        const locationDisplay = isRegionOnly
-            ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
-            : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
-
-        const div = document.createElement('div');
-        div.className = 'contact-item';
-        div.dataset.id = contact.id;
-        div.style.setProperty('--company-color', color);
-
-        div.innerHTML = `
-            <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
-            <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
-            ${contact.email ? `<p title="${contact.email}">📧 ${contact.email}</p>` : ''}
-            ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
-            <p>${locationDisplay}</p>
-            <div class="contact-actions">
-                <button class="btn-sm btn-success" onclick="event.stopPropagation();onEdit(this)">✏️ Modifier</button>
-                <button class="btn-sm btn-danger"  onclick="event.stopPropagation();onDel(this)">🗑 Supprimer</button>
-                ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="event.stopPropagation();onFocus(this)">🗺</button>` : ''}
-            </div>
-        `;
-
-        div.addEventListener('click', () => {
-            if (contact.lat != null) focusOnMap(contact.id);
-            if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0) {
-                highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
-            }
-        });
-
+        const div = buildContactCard(contact);
         container.appendChild(div);
     });
 
@@ -1903,6 +1927,165 @@ function renderContacts(filtered) {
         pag.appendChild(btn('→', currentPage + 1, currentPage === totalPages));
         container.appendChild(pag);
     }
+}
+
+// ══════════════════════════════════════════════
+// CONTACT CARD — vue normale + édition inline
+// ══════════════════════════════════════════════
+function buildContactCard(contact) {
+    const color = getCompanyColor(contact.company);
+    let scopeBadges = '';
+    if (contact.scopeRegional) scopeBadges += '<span class="scope-badge regional">Rég.</span>';
+    if (contact.scopeNational) scopeBadges += '<span class="scope-badge national">Nat.</span>';
+
+    const isRegionOnly = !contact.city && contact.region;
+    const noLoc = (contact.lat == null && !isRegionOnly) ? '<span class="no-loc-badge">⚠ sans GPS</span>' : '';
+    const regionOnlyBadge = isRegionOnly ? '<span class="no-loc-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;">🌍 Région</span>' : '';
+    const deliveryZoneBadge = contact.deliveryZone
+        ? `<span class="no-loc-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);font-weight:600;">🚚 ${contact.deliveryZone}</span>`
+        : '';
+    const locationDisplay = isRegionOnly
+        ? `📍 <span style="font-style:italic;opacity:0.85;">${contact.region}</span> <span style="color:var(--text-muted);font-size:0.68rem;">(région)</span>`
+        : `📍 ${contact.city || '—'}${contact.region ? ` · <span style="color:var(--text-muted);font-size:0.72rem;">${contact.region}</span>` : ''}`;
+
+    const div = document.createElement('div');
+    div.className = 'contact-item';
+    div.dataset.id = String(contact.id);
+    div.style.setProperty('--company-color', color);
+
+    div.innerHTML = `
+        <h3>${contact.firstName} ${contact.lastName || ''}${scopeBadges}${noLoc}${regionOnlyBadge}${deliveryZoneBadge}</h3>
+        <p style="color:${color};font-weight:600;">🏢 ${contact.company || '—'}</p>
+        ${contact.email ? `<p title="${contact.email}">📧 ${contact.email}</p>` : ''}
+        ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
+        <p>${locationDisplay}</p>
+        <div class="contact-actions">
+            <button class="btn-sm btn-success" onclick="event.stopPropagation();onEdit(this)">✏️ Modifier</button>
+            <button class="btn-sm btn-danger"  onclick="event.stopPropagation();onDel(this)">🗑 Supprimer</button>
+            ${contact.lat != null ? `<button class="btn-sm btn-ghost" onclick="event.stopPropagation();onFocus(this)">🗺</button>` : ''}
+        </div>
+    `;
+
+    div.addEventListener('click', () => {
+        if (!div.classList.contains('editing')) {
+            if (contact.lat != null) focusOnMap(contact.id);
+            if (contact.deliveryZoneRegions && contact.deliveryZoneRegions.length > 0)
+                highlightDeliveryZone(contact.deliveryZoneRegions, contact.id);
+        }
+    });
+
+    return div;
+}
+
+function inlineEditCard(div) {
+    const id  = String(div.dataset.id);
+    const c   = contacts.find(x => String(x.id) === id);
+    if (!c) { toast('Contact introuvable', 'error'); return; }
+
+    div.classList.add('editing');
+    div.innerHTML = `
+        <div class="inline-edit-grid">
+            <div class="inline-field">
+                <label>Prénom *</label>
+                <input id="ie-first"    value="${(c.firstName||'').replace(/"/g,'&quot;')}" placeholder="Prénom">
+            </div>
+            <div class="inline-field">
+                <label>Nom</label>
+                <input id="ie-last"     value="${(c.lastName||'').replace(/"/g,'&quot;')}" placeholder="Nom">
+            </div>
+            <div class="inline-field">
+                <label>Entreprise</label>
+                <input id="ie-company"  value="${(c.company||'').replace(/"/g,'&quot;')}" placeholder="Entreprise">
+            </div>
+            <div class="inline-field">
+                <label>Ville</label>
+                <input id="ie-city"     value="${(c.city||'').replace(/"/g,'&quot;')}" placeholder="Ville">
+            </div>
+            <div class="inline-field full">
+                <label>Email</label>
+                <input id="ie-email"    value="${(c.email||'').replace(/"/g,'&quot;')}" placeholder="Email" type="email">
+            </div>
+            <div class="inline-field">
+                <label>Téléphone</label>
+                <input id="ie-phone"    value="${(c.phone||'').replace(/"/g,'&quot;')}" placeholder="Téléphone">
+            </div>
+            <div class="inline-field">
+                <label>Zone livraison</label>
+                <input id="ie-zone"     value="${(c.deliveryZone||'').replace(/"/g,'&quot;')}" placeholder="Zone">
+            </div>
+        </div>
+        <div class="inline-edit-checks">
+            <label><input type="checkbox" id="ie-regional" ${c.scopeRegional?'checked':''}> Régional</label>
+            <label><input type="checkbox" id="ie-national" ${c.scopeNational?'checked':''}> National</label>
+        </div>
+        <div class="inline-edit-actions">
+            <button class="btn-sm btn-success" id="ie-save">💾 Sauvegarder</button>
+            <button class="btn-sm btn-ghost"   id="ie-cancel">✕ Annuler</button>
+        </div>
+    `;
+
+    // Focus prénom
+    div.querySelector('#ie-first').focus();
+
+    // Annuler : reconstruire la carte originale
+    div.querySelector('#ie-cancel').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fresh = contacts.find(x => String(x.id) === id);
+        if (fresh) {
+            const newDiv = buildContactCard(fresh);
+            div.replaceWith(newDiv);
+        }
+    });
+
+    // Sauvegarder
+    div.querySelector('#ie-save').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const btn = div.querySelector('#ie-save');
+        btn.disabled = true;
+        btn.textContent = '⏳';
+
+        const firstName  = div.querySelector('#ie-first').value.trim();
+        const lastName   = div.querySelector('#ie-last').value.trim();
+        const company    = div.querySelector('#ie-company').value.trim();
+        const email      = div.querySelector('#ie-email').value.trim();
+        const phone      = div.querySelector('#ie-phone').value.trim();
+        const newCity    = div.querySelector('#ie-city').value.trim();
+        const deliveryZone = div.querySelector('#ie-zone').value.trim();
+        const scopeRegional = div.querySelector('#ie-regional').checked;
+        const scopeNational = div.querySelector('#ie-national').checked;
+
+        if (!firstName) { toast('Prénom obligatoire', 'error'); btn.disabled = false; btn.textContent = '💾 Sauvegarder'; return; }
+
+        const idx = contacts.findIndex(x => String(x.id) === id);
+        if (idx < 0) { toast('Contact introuvable', 'error'); return; }
+
+        const oldCity = contacts[idx].city || '';
+        contacts[idx] = { ...contacts[idx], firstName, lastName, company, email, phone, deliveryZone, scopeRegional, scopeNational, city: newCity };
+
+        // Regéocoder si ville changée
+        if (newCity && newCity.toLowerCase() !== oldCity.toLowerCase()) {
+            btn.textContent = '📍';
+            const coords = await geocode(newCity);
+            if (coords) {
+                contacts[idx].lat = coords.lat;
+                contacts[idx].lon = coords.lon;
+                contacts[idx].fullName = coords.fullName;
+                contacts[idx].region = await findRegion(coords.lat, coords.lon) || contacts[idx].region;
+            } else {
+                toast(`Ville "${newCity}" introuvable, position non mise à jour`, 'warning');
+            }
+        }
+
+        try {
+            await saveToServer();
+            toast('Contact mis à jour ✓');
+            refreshUI(); // reconstruit toute la liste proprement
+        } catch(err) {
+            toast('Erreur sauvegarde : ' + err.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '💾 Sauvegarder';
+        }
+    });
 }
 
 function focusOnMap(id) {
@@ -2000,9 +2183,22 @@ function showContactInfo(c) {
 
     document.body.appendChild(ov);
     ov.querySelector('#ci-close').onclick = () => ov.remove();
-    const ciId = c.id;
-    ov.querySelector('#ci-edit').onclick   = () => { ov.remove(); editContact(ciId); };
-    ov.querySelector('#ci-delete').onclick = () => { ov.remove(); deleteContact(ciId); };
+    const ciId = String(c.id);
+    ov.querySelector('#ci-edit').onclick = () => {
+        ov.remove();
+        // Trouver la carte dans la liste et déclencher l'édition inline
+        const card = document.querySelector('.contact-item[data-id="' + ciId + '"]');
+        if (card) inlineEditCard(card);
+        else editContact(ciId); // fallback modal si carte absente (hors page)
+    };
+    ov.querySelector('#ci-delete').onclick = () => {
+        ov.remove();
+        const c2 = contacts.find(x => String(x.id) === ciId);
+        if (!c2) return;
+        if (!confirm('Supprimer ' + c2.firstName + ' ' + (c2.lastName||'') + ' ?')) return;
+        contacts = contacts.filter(x => String(x.id) !== ciId);
+        saveToServer().then(() => { refreshUI(); toast('Contact supprimé'); }).catch(err => toast(err.message,'error'));
+    };
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
 }
 
@@ -2088,7 +2284,7 @@ async function saveContact() {
         }
 
         const contactData = {
-            id: editId || Date.now().toString(),
+            id: editId || ('c_' + Date.now() + '_' + Math.random().toString(36).slice(2)),
             firstName, lastName, email, phone, city, region, company, deliveryZone,
             scopeRegional, scopeNational,
             lat: coords?.lat || null, 
@@ -2098,8 +2294,10 @@ async function saveContact() {
         };
 
         if (editId) {
-            const idx = contacts.findIndex(c => c.id === editId);
+            const sid = String(editId);
+            const idx = contacts.findIndex(c => String(c.id) === sid);
             if (idx >= 0) contacts[idx] = contactData;
+            else contacts.push(contactData); // sécurité si non trouvé
         } else {
             contacts.push(contactData);
         }
@@ -2120,7 +2318,8 @@ async function saveContact() {
 }
 
 function editContact(id) {
-    const c = contacts.find(x => x.id === id);
+    const sid = String(id);
+    const c = contacts.find(x => String(x.id) === sid);
     if (!c) return;
     document.getElementById('edit-id').value       = c.id;
     document.getElementById('first_name').value    = c.firstName || '';
@@ -2158,10 +2357,11 @@ function editContact(id) {
 }
 
 async function deleteContact(id) {
-    const c = contacts.find(x => x.id === id);
-    if (!c) return;
+    const sid = String(id);
+    const c = contacts.find(x => String(x.id) === sid);
+    if (!c) { console.error('deleteContact: id introuvable', sid, 'ids:', contacts.slice(0,3).map(x=>x.id)); return; }
     if (!confirm(`Supprimer ${c.firstName} ${c.lastName || ''} ?`)) return;
-    contacts = contacts.filter(x => x.id !== id);
+    contacts = contacts.filter(x => String(x.id) !== sid);
     await saveToServer();
     refreshUI();
     toast('Contact supprimé');
@@ -2578,7 +2778,7 @@ async function importExcel(input) {
                     contacts[existingIdx] = { ...existing, ...nc };
                     updated++;
                 } else {
-                    contacts.push({ id: Date.now().toString() + Math.random(), ...nc });
+                    contacts.push({ id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2), ...nc });
                     added++;
                 }
                 
@@ -2738,9 +2938,13 @@ function renderDbTable() {
         saveBtn.title       = 'Sauvegarder ce contact';
         saveBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
         saveBtn.addEventListener('click', async () => {
-            const contactId = tr.dataset.id;
-            const idx = contacts.findIndex(x => x.id === contactId);
-            if (idx < 0) { toast('Contact introuvable', 'error'); return; }
+            const contactId = String(tr.dataset.id);
+            const idx = contacts.findIndex(x => String(x.id) === contactId);
+            if (idx < 0) {
+                console.error('IDs disponibles:', contacts.slice(0,5).map(x=>x.id), 'recherché:', contactId);
+                toast('Contact introuvable (voir console)', 'error');
+                return;
+            }
             const oldCity = contacts[idx].city || '';
             // Lire toutes les valeurs depuis les inputs de cette ligne
             DB_COLS.forEach(col => {
@@ -2772,9 +2976,13 @@ function renderDbTable() {
         delBtn.title       = 'Supprimer ce contact';
         delBtn.style.cssText = 'font-size:0.68rem;padding:3px 8px;';
         delBtn.addEventListener('click', async () => {
-            const contactId = tr.dataset.id;
-            const c2 = contacts.find(x => x.id === contactId);
-            if (!c2) { toast('Contact introuvable', 'error'); return; }
+            const contactId = String(tr.dataset.id);
+            const c2 = contacts.find(x => String(x.id) === contactId);
+            if (!c2) {
+                console.error('IDs disponibles:', contacts.slice(0,5).map(x=>x.id), 'recherché:', contactId);
+                toast('Contact introuvable (voir console)', 'error');
+                return;
+            }
             if (!confirm(`Supprimer ${c2.firstName} ${c2.lastName || ''} ?`)) return;
             contacts = contacts.filter(x => x.id !== contactId);
             await saveToServer();
