@@ -137,17 +137,23 @@ function requireAdmin(req, res, next) {
 // ── LOGIN ──
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
+    console.log('LOGIN ATTEMPT:', username);
     if (!username || !password) return res.status(400).json({ success: false, message: 'Champs manquants' });
     try {
         const user = await User.findOne({ username: username.trim() });
-        if (!user || !verifyPassword(password, user.password))
-            return res.status(401).json({ success: false, message: 'Identifiants incorrects' });
+        console.log('USER FOUND:', !!user, user ? user.username : 'none');
+        if (!user) return res.status(401).json({ success: false, message: 'Utilisateur introuvable' });
+        console.log('PASSWORD STORED FORMAT:', user.password.substring(0, 30) + '...');
+        console.log('HAS COLON:', user.password.includes(':'));
+        const ok = verifyPassword(password, user.password);
+        console.log('PASSWORD OK:', ok);
+        if (!ok) return res.status(401).json({ success: false, message: 'Mot de passe incorrect' });
         await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
         const token = createToken(user);
         res.json({ success: true, token, username: user.username, role: user.role });
     } catch (err) {
         console.error('Login error:', err);
-        res.status(500).json({ success: false, message: 'Erreur serveur' });
+        res.status(500).json({ success: false, message: 'Erreur serveur: ' + err.message });
     }
 });
 
